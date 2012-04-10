@@ -10,8 +10,9 @@ success, prevImg = cap.read()
 
 outputgray = False
 printPts = False
+blurInput = False
 
-detectionModes = (["Off", "goodFeaturesToTrack"])
+detectionModes = (["Off","goodFeaturesToTrack","calcOpticalFlowPyrLK"])
 dm = 0
 
 drawColors = ((255,0,0), (0,255,0), (0,0,255))
@@ -23,6 +24,7 @@ print "'g' to toggle grayscaled output."
 print "'d' to change point detection mode."
 print "'p' to output points"
 print "'c' to change color"
+print "'b' to blur input"
 
 while True:
     success, nextImg = cap.read()
@@ -34,6 +36,10 @@ while True:
     if key == 27 or key == 32:  #esc or spacebar
         break #exit
     
+    elif key == 98: #b key
+        blurInput = not blurInput
+        print "Blur Input "+str(blurInput)
+
     elif key == 99: #c key
         dc += 1
         if dc >= len(drawColors):
@@ -57,25 +63,28 @@ while True:
     elif key > 0:
         print "unknown key "+str(key)
 
+        
+    if blurInput:
+        grayImg = cv2.blur(grayImg, (5,5))
+        nextImg = cv2.blur(nextImg, (5,5))
 
     #Set output to Grayscale or Color
     if outputgray:
         outputImg = grayImg
     else:
         outputImg = nextImg
-        
 
     #Point Detetcion Mode
-    if detectionModes[dm]=="goodFeaturesToTrack":
-        nextPts = cv2.goodFeaturesToTrack(grayImg, 300, 0.01, 10)
-    elif detectionModes[dm]=="Off":
+    if detectionModes[dm]=="Off":
         nextPts = array([])
-
+    elif detectionModes[dm]=="goodFeaturesToTrack":
+        nextPts = cv2.goodFeaturesToTrack(grayImg, 300, 0.01, 10)  
+    elif detectionModes[dm]=="calcOpticalFlowPyrLK":
+        nextPts,status,err = cv2.calcOpticalFlowPyrLK(prevImg, nextImg, prevPts, nextPts)
 
     #Output Points
     if printPts:
-        print nextPts
-
+        print len(nextPts)
 
     #Draw points on output
     for obj in nextPts:
@@ -83,12 +92,12 @@ while True:
             x = int(x)
             y = int(y)
             cv2.circle(outputImg, (x,y), 3, drawColors[dc], -1, 8, 0)
-
+        
     #Draw output        
     cv2.imshow("ArenaScanner", outputImg)
 
-    prevPts = nextPts
-    prevImg = nextImg
+    prevPts = nextPts.copy()
+    prevImg = nextImg.copy()
 
 print "Exiting."    
 
