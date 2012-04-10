@@ -8,14 +8,15 @@ prevPts = array([])
 nextPts = array([])
 success, prevImg = cap.read()
 
-
-drawcolors = ((255,0,0), (0,255,0), (0,0,255))
-i = 0
 outputgray = False
 printPts = False
 
 detectionModes = (["Off", "goodFeaturesToTrack"])
 dm = 0
+
+drawColors = ((255,0,0), (0,255,0), (0,0,255))
+dc = 0
+
 
 print "'Esc' to exit."
 print "'g' to toggle grayscaled output."
@@ -29,9 +30,15 @@ while True:
 
     #process key presses        
     key = cv2.waitKey(1)        
-    if key == 27:  #esc key
-        break
+    if key == 27 or key == 32:  #esc or spacebar
+        break #exit
     
+    elif key == 99: #c key
+        dc += 1
+        if dc >= len(drawColors):
+            dc = 0
+        print "Change Color"
+
     elif key == 100: #d key
         dm += 1
         if dm >= len(detectionModes):
@@ -70,15 +77,11 @@ while True:
 
 
     #Draw points on output
-    drawcolor = drawcolors[i]
-    i+=1
-    if i>=3:
-        i=0
     for obj in nextPts:
         for x,y in obj:    
             x = int(x)
             y = int(y)
-            cv2.circle(outputImg, (x,y), 3, drawcolor, -1, 8, 0)
+            cv2.circle(outputImg, (x,y), 3, drawColors[dc], -1, 8, 0)
 
     #Draw output        
     cv2.imshow("ArenaScanner", outputImg)
