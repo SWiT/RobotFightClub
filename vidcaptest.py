@@ -22,6 +22,7 @@ print "'Esc' to exit."
 print "'g' to toggle grayscaled output."
 print "'d' to change point detection mode."
 print "'p' to output points"
+print "'c' to change color"
 
 while True:
     success, nextImg = cap.read()
