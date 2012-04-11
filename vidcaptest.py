@@ -1,4 +1,4 @@
-import cv2, cv
+import cv2
 from numpy import *
 
 cap = cv2.VideoCapture(1)
@@ -12,7 +12,7 @@ outputgray = False
 printPts = False
 blurInput = False
 
-detectionModes = (["Off","goodFeaturesToTrack","calcOpticalFlowPyrLK"])
+detectionModes = (["Off","goodFeaturesToTrack","calcOpticalFlowPyrLK","clickDefinedPoints"])
 dm = 0
 
 drawColors = ((255,0,0), (0,255,0), (0,0,255))
@@ -26,10 +26,27 @@ print "'p' to output points"
 print "'c' to change color"
 print "'b' to blur input"
 
+
+def onMouse (event, x, y, flags, param):
+    global prevPts
+    global nextPts
+    if event == cv2.EVENT_LBUTTONUP:
+##        print "LBUTTONUP", event, x, y, flags, param
+        s = prevPts.shape
+        ni = s[0]
+        ns = ni + 1
+        prevPts.resize((ns,1,2))
+        prevPts.itemset((ni,0,0), x)
+        prevPts.itemset((ni,0,1), y)
+        nextPts = prevPts.copy()
+        print nextPts
+    
+cv2.setMouseCallback("ArenaScanner", onMouse, nextPts)
+
 while True:
     success, nextImg = cap.read()
 
-    grayImg = cv2.cvtColor(nextImg, cv.CV_RGB2GRAY)
+    grayImg = cv2.cvtColor(nextImg, cv2.COLOR_RGBA2GRAY)
 
     #process key presses        
     key = cv2.waitKey(1)        
@@ -50,6 +67,8 @@ while True:
         dm += 1
         if dm >= len(detectionModes):
             dm = 0
+        prevPts = array([])
+        nextPts = array([])
         print "Point Detection "+detectionModes[dm]
         
     elif key == 103: #g key
@@ -70,21 +89,29 @@ while True:
 
     #Set output to Grayscale or Color
     if outputgray:
-        outputImg = grayImg
+        outputImg = copy(grayImg)
     else:
-        outputImg = nextImg
+        outputImg = copy(nextImg)
 
-    #Point Detetcion Mode
+    #Point Detection Mode
     if detectionModes[dm]=="Off":
         nextPts = array([])
     elif detectionModes[dm]=="goodFeaturesToTrack":
-        nextPts = cv2.goodFeaturesToTrack(grayImg, 300, 0.01, 10)  
+        nextPts = cv2.goodFeaturesToTrack(grayImg, 3, 0.01, 10)  
     elif detectionModes[dm]=="calcOpticalFlowPyrLK":
+        if len(nextPts)==0:
+            nextPts = cv2.goodFeaturesToTrack(grayImg, 3, 0.01, 10)
+            prevPts = nextPts.copy()
         nextPts,status,err = cv2.calcOpticalFlowPyrLK(prevImg, nextImg, prevPts, nextPts)
-
+    elif detectionModes[dm]=="clickDefinedPoints":
+        if len(prevPts)>0 and len(nextPts)>0:
+            print "prev",prevPts
+            print "next",nextPts
+            nextPts,status,err = cv2.calcOpticalFlowPyrLK(prevImg, nextImg, prevPts, nextPts)
+            
     #Output Points
     if printPts:
-        print len(nextPts)
+        print nextPts
 
     #Draw points on output
     for obj in nextPts:
