@@ -1,85 +1,184 @@
-import sys, math
-import itertools
-import cv
+import cv2
+from numpy import *
 
-def detectFeatures(img):
-  """Detect features.
-  \param img Grayscale input image.
-  \return Feature iterator.
-  """
-  eig_image = cv.CreateImage(cv.GetSize(img), cv.IPL_DEPTH_32F, 1)
-  temp_image = cv.CreateImage(cv.GetSize(img), cv.IPL_DEPTH_32F, 1)
-  return cv.GoodFeaturesToTrack(img, eig_image, temp_image, 150, 0.01, 10, None, 3, 0, 0.04)
-
-def distance(p0, p1):
-  return math.sqrt((p0[0] - p1[0])**2 + (p0[1] - p1[1])**2)
-  
-def groupPoints(pointList, minDistance):
-  pointGroups = []
-  for point in pointList:
-    done = False # done grouping this point?
-    for pointGroup in pointGroups:
-      for point2 in pointGroup:
-        if done == False:
-          if distance(point, point2) < minDistance:
-            pointGroup.append(point)
-            done = True
-    if done == False: # didn't find a good group
-      newGroup = [point]
-      pointGroups.append(newGroup)
-  return pointGroups
+def onMouse (event, x, y, flags, param):
+    #print event, x, y, flags, param
+    global objectsPts
+    global objectPntIndex
+    global nextPts
+    global outputImg
+    global pointer
+    
+    if event == cv2.EVENT_LBUTTONUP:
+        #print "LBUTTONUP", x, y, flags, param
+        if drawing:
+            s = objectsPts.shape
+            objectsPts.itemset((objectIndex,objectPntIndex,0), x)
+            objectsPts.itemset((objectIndex,objectPntIndex,1), y)
+            objectPntIndex += 1
+            if objectPntIndex >= s[1]:
+                objectPntIndex = 0
+            #print objectsPts
+            
+    if event == cv2.EVENT_MOUSEMOVE:
+        if drawing:
+            pointer = (x, y)
 
 
-cv.NamedWindow("ArenaScannerOrg", 1)
-cv.NamedWindow("ArenaScanner", 2)
-capture = cv.CaptureFromCAM(0)
+def resetAllData ():
+    data = array([
+                [(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]
+                ,[(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]
+                ,[(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]
+                ,[(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]
+                ], dtype=float32)
+    return data
+
+
+def resetObjData ():
+    data = array([(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)], dtype=float32)
+    return data
+
+
+def displayMenu ():
+    print ""
+    print "------------------------------"
+    print "'c' Change color of next point "
+    print "'d' Toggle drawing points."
+    print "'h' Print this help menu."
+    print "'p' Print Points"
+    print "'r' Reset all points for current color"
+    print "'s' Print Statuses"
+    print "'t' Start tracking"
+    print "'Esc' or 'Space bar' to exit."
+    print "------------------------------"
+
+def displayStatuses ():
+    print ""
+    print "------------------------------"
+    print "Drawing: ",drawing
+    print "Color: "+objectsColorName[objectIndex]
+    print "Tracking: ",tracking
+    print "------------------------------"
+
+def displayPts ():
+    print ""
+    print "------------------------------"
+    print "pointer:", pointer
+    print "objectsPts:", objectsPts
+    print "------------------------------"
+
+##Setup Instructions
+cap = cv2.VideoCapture(1)
+cv2.namedWindow("ArenaScanner")
+key = -1
+nextPts = array([], dtype=float32)
+
+drawing = True
+tracking = False
+
+objectsColorCode = ((255,0,0), (0,240,0), (0,0,255), (0,210,210))
+objectsColorName = ("Blue", "Green", "Red", "Yellow")
+objectIndex = 0    #index of next object to add to
+objectPntIndex = 0    #index of next point to add
+objectsPts = resetAllData()
+
+pointer = (0,0)
+
+cv2.setMouseCallback("ArenaScanner", onMouse)
+success, prevImg = cap.read()
+
+displayMenu()
+displayStatuses()
+##Run Loop
 while True:
-    img = cv.QueryFrame(capture)
-    image_size = cv.GetSize(img)
+    success, nextImg = cap.read()
+    outputImg = nextImg.copy()
     
-##    imgoutput = cv.CreateImage(image_size, 8, 1)
-##    cv.CvtColor(img, imgoutput, cv.CV_RGB2GRAY)
+    #process key presses        
+    key = cv2.waitKey(1)        
+    if key == 27 or key == 32:  #esc or spacebar
+        break #exit
+    elif key == 104: #h key
+        displayMenu()
+        
+    elif key == 115: #s key
+        displayStatuses()
 
-##    imgoutput = cv.CloneImage(img);
-##    hc = cv.Load("C:\opencv\data\haarcascades\haarcascade_frontalface_default.xml")
-##    faces = cv.HaarDetectObjects(img, hc, cv.CreateMemStorage())
-##    for (x,y,w,h),n in faces:
-##        cv.Rectangle(imgoutput, (x,y), (x+w,y+h), 255)
+    elif key == 112: #p key
+        displayPts();
+        
+    elif key == 99: #c key
+        objectIndex += 1
+        if objectIndex >= len(objectsColorCode):
+            objectIndex = 0
+        print ""
+        print "------------------------------"
+        print "Color: "+objectsColorName[objectIndex]
+        print "------------------------------"
+
+    elif key == 100: #d key
+        drawing = not drawing
+        if drawing:
+            tracking = False
+        displayStatuses()
+        
+    elif key == 114: #r key
+        objectsPts[objectIndex] = resetObjData()
+        print ""
+        print "------------------------------"
+        print "Reset: "+objectsColorName[objectIndex]
+        print "------------------------------"
+        
+    elif key == 120: #x key
+        objectsPts = resetAllData()
+        print ""
+        print "------------------------------"
+        print "Reset All"
+        print "------------------------------"
+
+    elif key == 116: #t key
+        tracking = not tracking
+        if tracking:
+            drawing = False
+        displayStatuses()
+        
+    elif key > 0:
+        print ""
+        print "------------------------------"
+        print "unknown key "+str(key)
+        print "------------------------------"
 
 
-##    imghsv = cv.CreateImage(image_size, 8, 3)
-##    cv.CvtColor(img, imghsv, cv.CV_BGR2HSV)
-##    imgoutput = cv.CreateImage(image_size, 8, 1)
-##    cv.InRangeS(imghsv, cv.Scalar(20, 100, 100), cv.Scalar(30, 255, 255), imgoutput) #yellow
+    #Point Tracking and Detection
+    if tracking:
+        objIndex = 0
+        for objPts in objectsPts:
+            if len(objPts)>0:
+                nextPts,status,err = cv2.calcOpticalFlowPyrLK(prevImg, nextImg, objPts, nextPts)
+            objectsPts[objIndex] = nextPts.copy()
+            objIndex += 1
 
-    imgoutput = cv.CloneImage(img)
-    imgGrey = cv.CreateImage(image_size, 8, 1)
-    cv.CvtColor(img, imgGrey, cv.CV_RGB2GRAY)
-    imgGreySm = cv.CreateImage(cv.GetSize(imgGrey), imgGrey.depth, 1)
-    cv.Smooth(imgGrey, imgGreySm, smoothtype=cv.CV_MEDIAN, param1=9)
-    
-    features = detectFeatures(imgGreySm)
-    featureList = list(features)
-    for (x,y) in featureList:
-      cv.Circle(imgoutput, (int(x),int(y)), 3, (0,255,0), -1, 8, 0)
+            
+    #Draw points on output
+    objIndex = 0
+    for objPts in objectsPts:
+        for x,y in objPts:    
+            x = int(x)
+            y = int(y)
+            if x>0 or y>0:
+                cv2.circle(outputImg, (x,y), 3, objectsColorCode[objIndex], -1, 8, 0)
+        objIndex+=1
+        
+    if drawing:
+        cv2.circle(outputImg, pointer, 4, objectsColorCode[objectIndex], -1, 8, 0)
+        
+    #Draw output        
+    cv2.imshow("ArenaScanner", outputImg)
 
+    prevImg = nextImg.copy()
 
-    # detect objects
-    minDistance = 50
-    featureGroups = groupPoints(featureList, minDistance)
-    for group in featureGroups:
-      print group
-      for i in range(len(group) - 1):
-        cv.Line(imgoutput, (int(group[i][0]), int(group[i][1])), (int(group[i+1][0]), int(group[i+1][1])), (0,0,255))
-  
+print "Exiting."    
 
-
-
-    
-    cv.ShowImage("ArenaScannerOrg", img)
-    cv.ShowImage("ArenaScanner", imgoutput)
-    if cv.WaitKey(10) == 27:  #esc key
-        break
-    
-cv.DestroyWindow("ArenaScannerOrg")
-cv.DestroyWindow("ArenaScanner")
+cap.release()
+cv2.destroyAllWindows() 
