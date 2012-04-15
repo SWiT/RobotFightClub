@@ -112,6 +112,7 @@ while True:
         objectIndex += 1
         if objectIndex >= len(objectsColorCode):
             objectIndex = 0
+        objectPntIndex = 0
         print ""
         print "------------------------------"
         print "Color: "+objectsColorName[objectIndex]
@@ -163,11 +164,25 @@ while True:
     #Draw points on output
     objIndex = 0
     for objPts in objectsPts:
+        px = 0
+        py = 0
+        i = 0
+        s = objectsPts.shape
+        li = (s[1]-1) #last index
         for x,y in objPts:    
             x = int(x)
             y = int(y)
             if x>0 or y>0:
                 cv2.circle(outputImg, (x,y), 3, objectsColorCode[objIndex], -1, 8, 0)
+                if px>0 or py>0:
+                    cv2.line(outputImg, (px,py), (x,y), objectsColorCode[objIndex], 1)
+                elif (objPts[li][0]>0 or objPts[li][1]>0):
+                    px = objPts[li][0]
+                    py = objPts[li][1]
+                    cv2.line(outputImg, (px,py), (x,y), objectsColorCode[objIndex], 1)
+                px = x
+                py = y
+            i += 1
         objIndex+=1
         
     if drawing:
