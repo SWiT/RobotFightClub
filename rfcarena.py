@@ -21,22 +21,21 @@ def onMouse (event, x, y, flags, param):
             #print objectsPts
             
     if event == cv2.EVENT_MOUSEMOVE:
-        if drawing:
-            pointer = (x, y)
+        pointer = (x, y)
 
 
 def resetAllData ():
     data = array([
-                [(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]
-                ,[(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]
-                ,[(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]
-                ,[(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]
+                [(0,0),(0,0),(0,0)]
+                ,[(0,0),(0,0),(0,0)]
+                ,[(0,0),(0,0),(0,0)]
+                ,[(0,0),(0,0),(0,0)]
                 ], dtype=float32)
     return data
 
 
 def resetObjData ():
-    data = array([(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)], dtype=float32)
+    data = array([(0,0),(0,0),(0,0)], dtype=float32)
     return data
 
 
@@ -44,38 +43,42 @@ def displayMenu ():
     print ""
     print "------------------------------"
     print "'c' Change color of next point "
-    print "'d' Toggle drawing points."
+    print "'d' Toggle adding points."
     print "'h' Print this help menu."
-    print "'p' Print Points"
-    print "'r' Reset all points for current color"
+    print "'p' Print Points,toggle drawing of points"
+    print "'r' Remove the current color points."
     print "'s' Print Statuses"
     print "'t' Start tracking"
+    print "'v' Toggle output davta view."
+    print "'x' Reset all points."
     print "'Esc' or 'Space bar' to exit."
     print "------------------------------"
 
 def displayStatuses ():
     print ""
     print "------------------------------"
-    print "Drawing: ",drawing
-    print "Color: "+objectsColorName[objectIndex]
-    print "Tracking: ",tracking
+    print "Drawing:",drawing
+    print "Color:",objectsColorName[objectIndex]
+    print "Tracking:",tracking
     print "------------------------------"
 
-def displayPts ():
+def displayPrint(a, b=""):
     print ""
     print "------------------------------"
-    print "pointer:", pointer
-    print "objectsPts:", objectsPts
+    print a, b
     print "------------------------------"
 
 ##Setup Instructions
 cap = cv2.VideoCapture(1)
 cv2.namedWindow("ArenaScanner")
 key = -1
-nextPts = array([], dtype=float32)
+nextPts = resetObjData()
 
 drawing = True
 tracking = False
+drawObjects = True
+
+dataview = 0
 
 objectsColorCode = ((255,0,0), (0,240,0), (0,0,255), (0,210,210))
 objectsColorName = ("Blue", "Green", "Red", "Yellow")
@@ -90,67 +93,80 @@ success, prevImg = cap.read()
 
 displayMenu()
 displayStatuses()
+
 ##Run Loop
 while True:
-    success, nextImg = cap.read()
-    outputImg = nextImg.copy()
-    
+        
     #process key presses        
     key = cv2.waitKey(1)        
     if key == 27 or key == 32:  #esc or spacebar
         break #exit
-    elif key == 104: #h key
-        displayMenu()
-        
-    elif key == 115: #s key
-        displayStatuses()
-
-    elif key == 112: #p key
-        displayPts();
         
     elif key == 99: #c key
         objectIndex += 1
         if objectIndex >= len(objectsColorCode):
             objectIndex = 0
         objectPntIndex = 0
-        print ""
-        print "------------------------------"
-        print "Color: "+objectsColorName[objectIndex]
-        print "------------------------------"
+        displayPrint("Color:",objectsColorName[objectIndex])
 
     elif key == 100: #d key
         drawing = not drawing
-        if drawing:
-            tracking = False
         displayStatuses()
+
+    elif key == 104: #h key
+        displayMenu()
+
+    elif key == 112: #p key
+        drawObjects = not drawObjects
+        displayPrint("objectsPts:",objectsPts.shape)
+        displayPrint(objectsPts)
         
     elif key == 114: #r key
         objectsPts[objectIndex] = resetObjData()
-        print ""
-        print "------------------------------"
-        print "Reset: "+objectsColorName[objectIndex]
-        print "------------------------------"
-        
-    elif key == 120: #x key
-        objectsPts = resetAllData()
-        print ""
-        print "------------------------------"
-        print "Reset All"
-        print "------------------------------"
+        displayPrint("Reset:",objectsColorName[objectIndex])        
+    
+    elif key == 115: #s key
+        displayStatuses()
 
     elif key == 116: #t key
         tracking = not tracking
-        if tracking:
-            drawing = False
         displayStatuses()
-        
+
+    elif key == 118: #v key
+        dataview += 1
+        if dataview > 3:
+            dataview = 0
+        displayPrint("Data View:",dataview)
+
+    elif key == 120: #x key
+        objectsPts = resetAllData()
+        displayPrint("Reset All")
+    
     elif key > 0:
-        print ""
-        print "------------------------------"
-        print "unknown key "+str(key)
-        print "------------------------------"
+        displayPrint("unknown key",key)
 
 
+    #get next frame from capture device
+    success, nextImg = cap.read()
+
+
+    #Apply image transformations
+    if dataview == 0:
+        outputImg = nextImg.copy()
+
+    nextImg = cv2.cvtColor(nextImg, cv2.COLOR_BGR2GRAY)
+    if dataview == 1:
+        outputImg = nextImg.copy()
+
+    nextImg = cv2.dilate(nextImg, None, iterations=1)
+    if dataview == 2:
+        outputImg = nextImg.copy()
+
+    retval,nextImg = cv2.threshold(nextImg, 200, 255, cv2.THRESH_BINARY)
+    if dataview == 3:
+        outputImg = nextImg.copy()
+
+        
     #Point Tracking and Detection
     if tracking:
         objIndex = 0
@@ -162,28 +178,24 @@ while True:
 
             
     #Draw points on output
-    objIndex = 0
-    for objPts in objectsPts:
-        px = 0
-        py = 0
-        i = 0
+    if drawObjects:
+        objIndex = 0
         s = objectsPts.shape
-        li = (s[1]-1) #last index
-        for x,y in objPts:    
-            x = int(x)
-            y = int(y)
-            if x>0 or y>0:
-                cv2.circle(outputImg, (x,y), 3, objectsColorCode[objIndex], -1, 8, 0)
-                if px>0 or py>0:
-                    cv2.line(outputImg, (px,py), (x,y), objectsColorCode[objIndex], 1)
-                elif (objPts[li][0]>0 or objPts[li][1]>0):
-                    px = objPts[li][0]
-                    py = objPts[li][1]
-                    cv2.line(outputImg, (px,py), (x,y), objectsColorCode[objIndex], 1)
-                px = x
-                py = y
-            i += 1
-        objIndex+=1
+        li = s[1]-1 #last index
+        for objPts in objectsPts:
+            px,py = 0,0
+            for x,y in objPts:    
+                x,y = int(x),int(y)
+                if x>0 or y>0:
+                    cv2.circle(outputImg, (x,y), 3, objectsColorCode[objIndex], -1, 8, 0)
+                    if px>0 or py>0:
+                        cv2.line(outputImg, (px,py), (x,y), objectsColorCode[objIndex], 1)
+                    elif (objPts[li][0]>0 or objPts[li][1]>0):
+                        px,py = objPts[li]
+                        cv2.line(outputImg, (px,py), (x,y), objectsColorCode[objIndex], 1)
+                    px,py = x,y
+                   
+            objIndex+=1
         
     if drawing:
         cv2.circle(outputImg, pointer, 4, objectsColorCode[objectIndex], -1, 8, 0)
