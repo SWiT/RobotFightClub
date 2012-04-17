@@ -1,4 +1,5 @@
 import cv2
+import math
 from numpy import *
 
 def onMouse (event, x, y, flags, param):
@@ -18,8 +19,9 @@ def onMouse (event, x, y, flags, param):
             objectPntIndex += 1
             if objectPntIndex >= s[1]:
                 objectPntIndex = 0
-            #print objectsPts
-            
+##        print objectsPts[0]
+##        print cv2.minEnclosingCircle(objectsPts[0])
+        
     if event == cv2.EVENT_MOUSEMOVE:
         pointer = (x, y)
 
@@ -54,6 +56,7 @@ def displayMenu ():
     print "'Esc' or 'Space bar' to exit."
     print "------------------------------"
 
+
 def displayStatuses ():
     print ""
     print "------------------------------"
@@ -62,14 +65,44 @@ def displayStatuses ():
     print "Tracking:",tracking
     print "------------------------------"
 
+
 def displayPrint(a, b=""):
     print ""
     print "------------------------------"
     print a, b
     print "------------------------------"
 
+
+def drawObject(objPts, colorCode):
+    px,py = 0,0
+    li = objPts.shape[0]-1
+    for x,y in objPts:    
+        x,y = int(x),int(y)
+        if x>0 or y>0:
+            cv2.circle(outputImg, (x,y), 3, colorCode, -1, 8, 0)
+            if px>0 or py>0:
+                cv2.line(outputImg, (px,py), (x,y), colorCode, 1)
+            elif (objPts[li][0]>0 or objPts[li][1]>0):
+                px,py = objPts[li]
+                cv2.line(outputImg, (px,py), (x,y), colorCode, 1)
+            px,py = x,y
+
+
+def adjObjectPts(objPts, Img):
+##    for x,y in objPts:
+##        if Img[int(y)][int(x)] == 255:
+##            #find center of blob.
+##            print cv2.minEnclosingCircle(objPts)
+            
+    return objPts
+
+
+def dist(p0, p1):
+  return math.sqrt((p0[0] - p1[0])**2 + (p0[1] - p1[1])**2)
+
+            
 ##Setup Instructions
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 cv2.namedWindow("ArenaScanner")
 key = -1
 nextPts = resetObjData()
@@ -162,17 +195,20 @@ while True:
     if dataview == 2:
         outputImg = nextImg.copy()
 
-    retval,nextImg = cv2.threshold(nextImg, 200, 255, cv2.THRESH_BINARY)
+    retval,nextImg = cv2.threshold(nextImg, 190, 255, cv2.THRESH_BINARY)
     if dataview == 3:
         outputImg = nextImg.copy()
 
+    #No Idea what I am doing with CamShift
+    #probImage = cv2.calcBackProject(images, channels, hist, ranges[, dst[, scale]])
+    #retval, window = cv2.CamShift(probImage, window, criteria)
         
     #Point Tracking and Detection
     if tracking:
         objIndex = 0
         for objPts in objectsPts:
-            if len(objPts)>0:
-                nextPts,status,err = cv2.calcOpticalFlowPyrLK(prevImg, nextImg, objPts, nextPts)
+            nextPts,status,err = cv2.calcOpticalFlowPyrLK(prevImg, nextImg, objPts, nextPts)
+            nextPts = adjObjectPts(nextPts, nextImg)
             objectsPts[objIndex] = nextPts.copy()
             objIndex += 1
 
@@ -180,21 +216,8 @@ while True:
     #Draw points on output
     if drawObjects:
         objIndex = 0
-        s = objectsPts.shape
-        li = s[1]-1 #last index
         for objPts in objectsPts:
-            px,py = 0,0
-            for x,y in objPts:    
-                x,y = int(x),int(y)
-                if x>0 or y>0:
-                    cv2.circle(outputImg, (x,y), 3, objectsColorCode[objIndex], -1, 8, 0)
-                    if px>0 or py>0:
-                        cv2.line(outputImg, (px,py), (x,y), objectsColorCode[objIndex], 1)
-                    elif (objPts[li][0]>0 or objPts[li][1]>0):
-                        px,py = objPts[li]
-                        cv2.line(outputImg, (px,py), (x,y), objectsColorCode[objIndex], 1)
-                    px,py = x,y
-                   
+            drawObject(objPts, objectsColorCode[objIndex])
             objIndex+=1
         
     if drawing:
