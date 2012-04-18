@@ -19,9 +19,9 @@ def onMouse (event, x, y, flags, param):
             objectPntIndex += 1
             if objectPntIndex >= s[1]:
                 objectPntIndex = 0
-##        print objectsPts[0]
-##        print cv2.minEnclosingCircle(objectsPts[0])
-        
+            print "Added Point:",objectIndex,objectPntIndex,x,y
+            print objectsPts
+            
     if event == cv2.EVENT_MOUSEMOVE:
         pointer = (x, y)
 
@@ -76,25 +76,61 @@ def displayPrint(a, b=""):
 def drawObject(objPts, colorCode):
     px,py = 0,0
     li = objPts.shape[0]-1
+    sz = 3
     for x,y in objPts:    
         x,y = int(x),int(y)
         if x>0 or y>0:
-            cv2.circle(outputImg, (x,y), 3, colorCode, -1, 8, 0)
+            cv2.circle(outputImg, (x,y), sz, colorCode, -1, 8, 0)
             if px>0 or py>0:
                 cv2.line(outputImg, (px,py), (x,y), colorCode, 1)
             elif (objPts[li][0]>0 or objPts[li][1]>0):
                 px,py = objPts[li]
                 cv2.line(outputImg, (px,py), (x,y), colorCode, 1)
+                
+            if sz>2:
+                sz = 2
             px,py = x,y
+            
 
 
 def adjObjectPts(objPts, Img):
-##    for x,y in objPts:
-##        if Img[int(y)][int(x)] == 255:
-##            #find center of blob.
-##            print cv2.minEnclosingCircle(objPts)
-            
-    return objPts
+    adjPts = objPts.copy()
+    i=0
+    for x,y in objPts:
+        if x<=0 and y<=0:
+            adjPts[i] = (0,0)
+        else:
+            #find center of blob.
+            if Img[y][x] == 255:
+                px,py = int(x),int(y)
+                while  Img[py][px] == 255:
+                    py += 1 #down
+                max_y = py-1
+
+                px,py = int(x),int(y)
+                while  Img[py][px] == 255:
+                    py -= 1 #up
+                min_y = py+1
+                
+                px,py = int(x),int(y)
+                while  Img[py][px] == 255:
+                    px += 1 #right
+                max_x = px-1
+
+                px,py = int(x),int(y)
+                while  Img[py][px] == 255:
+                    px -= 1 #left
+                min_x = px+1
+                
+                px = int(min_x+(max_x-min_x)/2)
+                py = int(min_y+(max_y-min_y)/2)
+                if abs(x-px)>1 or abs(y-py)>1:
+                    adjPts[i] = (px,py)
+            else:
+                print x,y,"point fell off..."
+                adjPts[i] = (0,0)
+        i += 1
+    return adjPts
 
 
 def dist(p0, p1):
@@ -111,7 +147,7 @@ drawing = True
 tracking = False
 drawObjects = True
 
-dataview = 0
+dataview = 3
 
 objectsColorCode = ((255,0,0), (0,240,0), (0,0,255), (0,210,210))
 objectsColorName = ("Blue", "Green", "Red", "Yellow")
@@ -195,23 +231,20 @@ while True:
     if dataview == 2:
         outputImg = nextImg.copy()
 
-    retval,nextImg = cv2.threshold(nextImg, 190, 255, cv2.THRESH_BINARY)
+    retval,nextImg = cv2.threshold(nextImg, 200, 255, cv2.THRESH_BINARY)
     if dataview == 3:
         outputImg = nextImg.copy()
 
-    #No Idea what I am doing with CamShift
-    #probImage = cv2.calcBackProject(images, channels, hist, ranges[, dst[, scale]])
-    #retval, window = cv2.CamShift(probImage, window, criteria)
-        
+   
     #Point Tracking and Detection
-    if tracking:
-        objIndex = 0
-        for objPts in objectsPts:
+    objIndex = 0
+    for objPts in objectsPts:
+        if tracking:
             nextPts,status,err = cv2.calcOpticalFlowPyrLK(prevImg, nextImg, objPts, nextPts)
-            nextPts = adjObjectPts(nextPts, nextImg)
             objectsPts[objIndex] = nextPts.copy()
-            objIndex += 1
-
+        objectsPts[objIndex] = adjObjectPts(objectsPts[objIndex], nextImg)
+        objIndex += 1
+            
             
     #Draw points on output
     if drawObjects:
@@ -221,7 +254,7 @@ while True:
             objIndex+=1
         
     if drawing:
-        cv2.circle(outputImg, pointer, 4, objectsColorCode[objectIndex], -1, 8, 0)
+        cv2.circle(outputImg, pointer, 2, objectsColorCode[objectIndex], -1, 8, 0)
         
     #Draw output        
     cv2.imshow("ArenaScanner", outputImg)
