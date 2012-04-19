@@ -6,7 +6,6 @@ def onMouse (event, x, y, flags, param):
     #print event, x, y, flags, param
     global objectsPts
     global objectPntIndex
-    global nextPts
     global outputImg
     global pointer
     
@@ -20,7 +19,6 @@ def onMouse (event, x, y, flags, param):
             if objectPntIndex >= s[1]:
                 objectPntIndex = 0
             print "Added Point:",objectIndex,objectPntIndex,x,y
-            print objectsPts
             
     if event == cv2.EVENT_MOUSEMOVE:
         pointer = (x, y)
@@ -32,12 +30,12 @@ def resetAllData ():
                 ,[(0,0),(0,0),(0,0)]
                 ,[(0,0),(0,0),(0,0)]
                 ,[(0,0),(0,0),(0,0)]
-                ], dtype=float32)
+                ], dtype=int32)
     return data
 
 
 def resetObjData ():
-    data = array([(0,0),(0,0),(0,0)], dtype=float32)
+    data = array([(0,0),(0,0),(0,0)], dtype=int32)
     return data
 
 
@@ -76,7 +74,7 @@ def displayPrint(a, b=""):
 def drawObject(objPts, colorCode):
     px,py = 0,0
     li = objPts.shape[0]-1
-    sz = 3
+    sz = 2
     for x,y in objPts:    
         x,y = int(x),int(y)
         if x>0 or y>0:
@@ -96,36 +94,44 @@ def drawObject(objPts, colorCode):
 def adjObjectPts(objPts, Img):
     adjPts = objPts.copy()
     i=0
+    imgshape = Img.shape
     for x,y in objPts:
         if x<=0 and y<=0:
             adjPts[i] = (0,0)
         else:
-            #find center of blob.
             if Img[y][x] == 255:
+                #find center of blob.
                 px,py = int(x),int(y)
-                while  Img[py][px] == 255:
+                while Img[py][px] == 255:
                     py += 1 #down
+                    if py >= imgshape[0]:
+                        break
                 max_y = py-1
 
                 px,py = int(x),int(y)
                 while  Img[py][px] == 255:
                     py -= 1 #up
+                    if py < 0:
+                        break
                 min_y = py+1
                 
                 px,py = int(x),int(y)
                 while  Img[py][px] == 255:
                     px += 1 #right
+                    if px >= imgshape[1]:
+                        break
                 max_x = px-1
 
                 px,py = int(x),int(y)
                 while  Img[py][px] == 255:
                     px -= 1 #left
+                    if px < 0:
+                        break
                 min_x = px+1
-                
-                px = int(min_x+(max_x-min_x)/2)
-                py = int(min_y+(max_y-min_y)/2)
-                if abs(x-px)>1 or abs(y-py)>1:
-                    adjPts[i] = (px,py)
+
+                px = min_x + (max_x-min_x)/2
+                py = min_y + (max_y-min_y)/2
+                adjPts[i] = (px,py)
             else:
                 print x,y,"point fell off..."
                 adjPts[i] = (0,0)
@@ -141,7 +147,6 @@ def dist(p0, p1):
 cap = cv2.VideoCapture(0)
 cv2.namedWindow("ArenaScanner")
 key = -1
-nextPts = resetObjData()
 
 drawing = True
 tracking = False
@@ -154,6 +159,7 @@ objectsColorName = ("Blue", "Green", "Red", "Yellow")
 objectIndex = 0    #index of next object to add to
 objectPntIndex = 0    #index of next point to add
 objectsPts = resetAllData()
+objectsNextPts = resetAllData()
 
 pointer = (0,0)
 
@@ -192,7 +198,8 @@ while True:
         
     elif key == 114: #r key
         objectsPts[objectIndex] = resetObjData()
-        displayPrint("Reset:",objectsColorName[objectIndex])        
+        objectPntIndex = 0
+        displayPrint("Reset:",objectsColorName[objectIndex])
     
     elif key == 115: #s key
         displayStatuses()
@@ -209,6 +216,7 @@ while True:
 
     elif key == 120: #x key
         objectsPts = resetAllData()
+        objectPntIndex = 0
         displayPrint("Reset All")
     
     elif key > 0:
@@ -231,7 +239,7 @@ while True:
     if dataview == 2:
         outputImg = nextImg.copy()
 
-    retval,nextImg = cv2.threshold(nextImg, 200, 255, cv2.THRESH_BINARY)
+    retval,nextImg = cv2.threshold(nextImg, 240, 255, cv2.THRESH_BINARY)
     if dataview == 3:
         outputImg = nextImg.copy()
 
@@ -239,11 +247,15 @@ while True:
     #Point Tracking and Detection
     objIndex = 0
     for objPts in objectsPts:
-        if tracking:
-            nextPts,status,err = cv2.calcOpticalFlowPyrLK(prevImg, nextImg, objPts, nextPts)
-            objectsPts[objIndex] = nextPts.copy()
         objectsPts[objIndex] = adjObjectPts(objectsPts[objIndex], nextImg)
         objIndex += 1
+        
+    if tracking:
+        prevPts = float32(objectsPts.reshape((12,2)))
+        nextPts = zeros((12,2),dtype=float32)
+        nextPts,status,err = cv2.calcOpticalFlowPyrLK(prevImg, nextImg, prevPts, nextPts)
+        objectsNextPts = int32(nextPts.reshape((4,3,2)))
+        objectsPts = objectsNextPts.copy()
             
             
     #Draw points on output
