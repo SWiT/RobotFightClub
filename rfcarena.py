@@ -92,6 +92,7 @@ def drawObject(objPts, colorCode):
 
 
 def adjObjectPts(objPts, Img):
+    return objPts
     adjPts = objPts.copy()
     i=0
     imgshape = Img.shape
@@ -101,28 +102,28 @@ def adjObjectPts(objPts, Img):
         else:
             if Img[y][x] == 255:
                 #find center of blob.
-                px,py = int(x),int(y)
+                px,py = x,y
                 while Img[py][px] == 255:
                     py += 1 #down
                     if py >= imgshape[0]:
                         break
                 max_y = py-1
 
-                px,py = int(x),int(y)
+                px,py = x,y
                 while  Img[py][px] == 255:
                     py -= 1 #up
                     if py < 0:
                         break
                 min_y = py+1
                 
-                px,py = int(x),int(y)
+                px,py = x,y
                 while  Img[py][px] == 255:
                     px += 1 #right
                     if px >= imgshape[1]:
                         break
                 max_x = px-1
 
-                px,py = int(x),int(y)
+                px,py = x,y
                 while  Img[py][px] == 255:
                     px -= 1 #left
                     if px < 0:
@@ -133,7 +134,13 @@ def adjObjectPts(objPts, Img):
                 py = min_y + (max_y-min_y)/2
                 adjPts[i] = (px,py)
             else:
-                print x,y,"point fell off..."
+                print i,x,y,"point fell off..."
+                if i!=0:
+                    print Img[objPts[0][0]][objPts[0][1]] == 255
+                if i!=1:
+                    print Img[objPts[1][0]][objPts[1][1]] == 255
+                if i!=2:
+                    print Img[objPts[2][0]][objPts[2][1]] == 255
                 adjPts[i] = (0,0)
         i += 1
     return adjPts
@@ -235,11 +242,11 @@ while True:
     if dataview == 1:
         outputImg = nextImg.copy()
 
-    nextImg = cv2.dilate(nextImg, None, iterations=1)
+    nextImg = cv2.dilate(nextImg, None, iterations=2)
     if dataview == 2:
         outputImg = nextImg.copy()
 
-    retval,nextImg = cv2.threshold(nextImg, 240, 255, cv2.THRESH_BINARY)
+    retval,nextImg = cv2.threshold(nextImg, 165, 255, cv2.THRESH_BINARY)
     if dataview == 3:
         outputImg = nextImg.copy()
 
