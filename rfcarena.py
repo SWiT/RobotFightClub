@@ -1,5 +1,5 @@
 import cv2
-import math
+import sys, math
 from numpy import *
 
 def onMouse (event, x, y, flags, param):
@@ -144,7 +144,10 @@ def dist(p0, p1):
 
             
 ##Setup Instructions
-cap = cv2.VideoCapture(0)
+if len(sys.argv) > 1:
+  cap = cv2.VideoCapture(sys.argv[1])
+else:
+  cap = cv2.VideoCapture(0)
 cv2.namedWindow("ArenaScanner")
 key = -1
 
@@ -225,6 +228,8 @@ while True:
 
     #get next frame from capture device
     success, nextImg = cap.read()
+    if not success:
+        break;
 
 
     #Apply image transformations
