@@ -99,7 +99,7 @@ def dist(p0, p1):
 
 
 def findCenterOfBlob(Img, startPt, color):
-    print "startPt",startPt
+    #print "startPt",startPt
     imgshape = Img.shape
     adjPt = startPt
     passes = 0
@@ -139,15 +139,23 @@ def findCenterOfBlob(Img, startPt, color):
             break
         startPt = adjPt
         passes+=1
-    print "adjPt",adjPt
+    #print "adjPt",adjPt
     return adjPt
 
 
 def findBots(Img):
     pts = cv2.goodFeaturesToTrack(Img, 6, 0.01, 12)
-    for obj in pts:
-        for pnt in obj:
-            pnt = findCenterOfBlob(Img, pnt, 255)
+    pts = pts.reshape(6,2)
+    for pnt in pts:
+        pnt = findCenterOfBlob(Img, pnt, 255)
+    print "------------------------------"
+    for pnt_a in pts:
+        for pnt_b in pts:
+            d = dist(pnt_a, pnt_b)
+            #print pnt_a, pnt_b, d
+            if 12 <= d <= 25:
+                print pnt_a, pnt_b, d
+    pts = pts.reshape(6,1,2)
     return pts
 
 
