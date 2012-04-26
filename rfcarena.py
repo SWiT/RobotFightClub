@@ -98,58 +98,57 @@ def dist(p0, p1):
   return math.sqrt((p0[0] - p1[0])**2 + (p0[1] - p1[1])**2)
 
 
-def findCenterOfBlob(prevPt, color):
-    nextPt = prevPt
+def findCenterOfBlob(Img, startPt, color):
+    print "startPt",startPt
+    imgshape = Img.shape
+    adjPt = startPt
     passes = 0
     while passes < 3:
-        px,py = prevPt
+        px,py = startPt
         while Img[py][px] == color:
             py += 1 #down
             if py >= imgshape[0]:
                 break
         max_y = py-1
 
-        px,py = prevPt
+        px,py = startPt
         while  Img[py][px] == color:
             py -= 1 #up
             if py < 0:
                 break
         min_y = py+1
         
-        px,py = prevPt
+        px,py = startPt
         while  Img[py][px] == color:
             px += 1 #right
             if px >= imgshape[1]:
                 break
         max_x = px-1
 
-        px,py = prevPt
+        px,py = startPt
         while  Img[py][px] == color:
             px -= 1 #left
             if px < 0:
                 break
         min_x = px+1
 
-        nextPt[0] = min_x + (max_x-min_x)/2
-        nextPt[1] = min_y + (max_y-min_y)/2
-
-        if nextPt==prevPt:
-            break
-        passes+=1
+        adjPt[0] = min_x + (max_x-min_x)/2
+        adjPt[1] = min_y + (max_y-min_y)/2
         
-    return nextPt
+        if adjPt[0]==startPt[0] and adjPt[1]==startPt[1]:
+            break
+        startPt = adjPt
+        passes+=1
+    print "adjPt",adjPt
+    return adjPt
 
 
 def findBots(Img):
-    y=0
-    for row in Img:
-        x=0
-        for pixel in row:
-            if pixel==color:
-                print "found",color,"at",x,",",y
-                #cenPnt = findCenterOfBlob((x,y),255)
-            x+=1
-        y+=1
+    pts = cv2.goodFeaturesToTrack(Img, 6, 0.01, 12)
+    for obj in pts:
+        for pnt in obj:
+            pnt = findCenterOfBlob(Img, pnt, 255)
+    return pts
 
 
 
@@ -169,7 +168,7 @@ drawing = True
 tracking = False
 drawObjects = True
 
-dataview = 3
+dataview = 1
 
 objectsColorCode = ((255,0,0), (0,240,0), (0,0,255), (0,210,210))
 objectsColorName = ("Blue", "Green", "Red", "Yellow")
@@ -179,6 +178,7 @@ objectsPts = resetAllData()
 objectsNextPts = resetAllData()
 
 pointer = (0,0)
+gftt = resetAllData()
 
 cv2.setMouseCallback("ArenaScanner", onMouse)
 success, prevImg = cap.read()
@@ -200,18 +200,11 @@ while True:
     #Apply image transformations
     if dataview == 0:
         outputImg = nextImg.copy()
-
     nextImg = cv2.cvtColor(nextImg, cv2.COLOR_BGR2GRAY)
-    if dataview == 1:
-        outputImg = nextImg.copy()
-
     nextImg = cv2.dilate(nextImg, None, iterations=1)
-    if dataview == 2:
-        outputImg = nextImg.copy()
-
-    retval,nextImg = cv2.threshold(nextImg, 170, 255, cv2.THRESH_BINARY)
-    if dataview == 3:
-        outputImg = nextImg.copy()
+    retval,nextImg = cv2.threshold(nextImg, 220, 255, cv2.THRESH_BINARY)
+    if dataview == 1:
+        outputImg = cv2.cvtColor(nextImg, cv2.COLOR_GRAY2BGR)
         
 
    
@@ -230,6 +223,9 @@ while True:
         for objPts in objectsPts:
             drawObject(objPts, objectsColorCode[objIndex])
             objIndex+=1
+        
+        for objPts in gftt:
+            drawObject(objPts, (255,255,0))
         
     if drawing:
         cv2.circle(outputImg, pointer, 2, objectsColorCode[objectIndex], -1, 8, 0)
@@ -256,7 +252,7 @@ while True:
         displayStatuses()
 
     elif key == 102: #f key
-        findBots(nextImg)
+        gftt = findBots(nextImg)
         
     elif key == 104: #h key
         displayMenu()
@@ -280,7 +276,7 @@ while True:
 
     elif key == 118: #v key
         dataview += 1
-        if dataview > 3:
+        if dataview > 1:
             dataview = 0
         displayPrint("Data View:",dataview)
 
