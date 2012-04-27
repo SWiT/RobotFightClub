@@ -68,12 +68,10 @@ def displayStatuses ():
     print "------------------------------"
 
 
-def displayPrint(a, b=""):
-    print ""
+def displayPrint(a, b="", c=""):
     print "------------------------------"
-    print a, b
+    print a, b, c
     print "------------------------------"
-
 
 def drawObject(objPts, colorCode):
     px,py = 0,0
@@ -144,18 +142,31 @@ def findCenterOfBlob(Img, startPt, color):
 
 
 def findBots(Img):
+    global objectsPts
     pts = cv2.goodFeaturesToTrack(Img, 6, 0.01, 12)
-    pts = pts.reshape(6,2)
+    pts_shape = pts.shape
+    pts = pts.reshape(pts_shape[0],pts_shape[2])
     for pnt in pts:
         pnt = findCenterOfBlob(Img, pnt, 255)
     print "------------------------------"
+    allPts = objectsPts.reshape(12,2)
     for pnt_a in pts:
         for pnt_b in pts:
             d = dist(pnt_a, pnt_b)
-            #print pnt_a, pnt_b, d
-            if 12 <= d <= 25:
+##            print pnt_a, pnt_b, d
+            if 17 <= d < 23:
                 print pnt_a, pnt_b, d
-    pts = pts.reshape(6,1,2)
+                found = False
+                for p in allPts:
+                    if p[0]==pnt_a[0] and p[1]==pnt_a[1]:
+                        found = True
+                if not found:
+                    p = pnt_a #this is wrong and was stopped mid thought to goto Penguicon 2012!!!
+                    
+            elif 23 <= d <= 26:
+                print pnt_a, pnt_b, d
+                
+    pts = pts.reshape(pts_shape)
     return pts
 
 
@@ -218,11 +229,10 @@ while True:
    
     #Point Tracking and Detection
     if tracking:
-        prevPts = float32(objectsPts.reshape((12,2)))
+        prevPts = objectsPts.reshape((12,2))
         nextPts = zeros((12,2),dtype=float32)
         nextPts,status,err = cv2.calcOpticalFlowPyrLK(prevImg, nextImg, prevPts, nextPts)
-        objectsNextPts = int32(nextPts.reshape((4,3,2)))
-        objectsPts = objectsNextPts.copy()
+        objectsPts = nextPts.reshape((4,3,2))
             
             
     #Draw points on output
@@ -266,9 +276,11 @@ while True:
         displayMenu()
 
     elif key == 112: #p key
-        drawObjects = not drawObjects
+        #drawObjects = not drawObjects
         displayPrint("objectsPts:",objectsPts.shape)
         displayPrint(objectsPts)
+        displayPrint("gftt:",gftt.shape)
+        displayPrint(gftt)
         
     elif key == 114: #r key
         objectsPts[objectIndex] = resetObjData()
