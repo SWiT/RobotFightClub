@@ -1,5 +1,5 @@
 import cv2
-import sys, math
+import sys, math, time
 from numpy import *
 
 ###############
@@ -177,11 +177,16 @@ def findBots(Img):
 ## SETUP
 ###############            
 if len(sys.argv) > 1:
+  filePlayback = True
   cap = cv2.VideoCapture(sys.argv[1])
 else:
+  filePlayback = False
   cap = cv2.VideoCapture(0)
 cv2.namedWindow("ArenaScanner")
 key = -1
+
+FPS = 30
+frameTime = time.time()
 
 drawing = True
 tracking = False
@@ -210,6 +215,12 @@ displayStatuses()
 ## LOOP
 ###############
 while True:
+    #control FPS during file playback
+    if filePlayback:
+        while time.time() < frameTime + 1.0/FPS:
+            time.sleep(0.001)
+        frameTime = time.time()
+
     #get next frame from capture device
     success, nextImg = cap.read()
     if not success:
