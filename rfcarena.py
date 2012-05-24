@@ -49,11 +49,13 @@ def displayMenu ():
     print "'c' Change color of next point "
     print "'d' Toggle adding points."
     print "'h' Print this help menu."
-    print "'p' Print Points,toggle drawing of points"
+    print "'l' Increase the light level threshold for the LED scanning"
+    print "'n' Increase the number of robots to scan for"
+    print "'p' Print the various point sets"
     print "'r' Remove the current color points."
     print "'s' Print Statuses"
     print "'t' Start tracking"
-    print "'v' Toggle output davta view."
+    print "'v' Toggle output view."
     print "'x' Reset all points."
     print "'Esc' or 'Space bar' to exit."
     print "------------------------------"
@@ -65,6 +67,8 @@ def displayStatuses ():
     print "Drawing:",drawing
     print "Color:",objectsColorName[objectIndex]
     print "Tracking:",tracking
+    print "NumOfRobots:",numberOfRobots
+    print "LED Level:",ledLevel
     print "------------------------------"
 
 
@@ -91,9 +95,25 @@ def drawObject(objPts, colorCode):
                 sz = 2
             px,py = x,y
 
+def increaseLedLevel():
+    global ledMin,ledLevel,ledMax
+    if ledLevel == ledMax:
+        ledLevel = ledMin
+    else:
+        ledLevel += 10
+        if ledLevel > ledMax:
+            ledLevel = ledMax
+
+def increaseNumOfRobots():
+    global numberOfRobots
+    numberOfRobots += 1
+    if numberOfRobots > 4:
+        numberOfRobots = 1
+        
+        
             
 def dist(p0, p1):
-  return math.sqrt((p0[0] - p1[0])**2 + (p0[1] - p1[1])**2)
+    return math.sqrt((p0[0] - p1[0])**2 + (p0[1] - p1[1])**2)
 
 
 def findCenterOfBlob(Img, startPt, color):
@@ -142,28 +162,30 @@ def findCenterOfBlob(Img, startPt, color):
 
 
 def findBots(Img):
-    global objectsPts
-    pts = cv2.goodFeaturesToTrack(Img, 6, 0.01, 12)
+    global objectsPts, numberOfRobots
+    pts = cv2.goodFeaturesToTrack(Img, (numberOfRobots*3), 0.01, 12)
+    if not pts:
+        return []
+    
     pts_shape = pts.shape
     pts = pts.reshape(pts_shape[0],pts_shape[2])
     for pnt in pts:
         pnt = findCenterOfBlob(Img, pnt, 255)
     print "------------------------------"
     allPts = objectsPts.reshape(12,2)
-    for pnt_a in pts:
+    for a_i, pnt_a in enumerate(pts):
         for pnt_b in pts:
             d = dist(pnt_a, pnt_b)
-##            print pnt_a, pnt_b, d
-            if 17 <= d < 23:
+            if 17 <= d < 23: #it could a the rear short side of the triangle
                 print pnt_a, pnt_b, d
                 found = False
                 for p in allPts:
                     if p[0]==pnt_a[0] and p[1]==pnt_a[1]:
                         found = True
                 if not found:
-                    p = pnt_a #this is wrong and was stopped mid thought to goto Penguicon 2012!!!
+                    p = pnt_a
                     
-            elif 23 <= d <= 26:
+            elif 23 <= d <= 26: #it could be one of the longer sides of the triangle
                 print pnt_a, pnt_b, d
                 
     pts = pts.reshape(pts_shape)
@@ -196,6 +218,11 @@ objectPntIndex = 0    #index of next point to add
 objectsPts = resetAllData()
 objectsNextPts = resetAllData()
 
+numberOfRobots = 1
+ledMin = 120
+ledLevel = 120
+ledMax = 255
+
 pointer = (0,0)
 gftt = resetAllData()
 
@@ -221,7 +248,7 @@ while True:
         outputImg = nextImg.copy()
     nextImg = cv2.cvtColor(nextImg, cv2.COLOR_BGR2GRAY)
     nextImg = cv2.dilate(nextImg, None, iterations=1)
-    retval,nextImg = cv2.threshold(nextImg, 220, 255, cv2.THRESH_BINARY)
+    retval,nextImg = cv2.threshold(nextImg, ledLevel, 255, cv2.THRESH_BINARY)
     if dataview == 1:
         outputImg = cv2.cvtColor(nextImg, cv2.COLOR_GRAY2BGR)
         
@@ -275,12 +302,21 @@ while True:
     elif key == 104: #h key
         displayMenu()
 
+    elif key == 108: #l key
+        increaseLedLevel()
+        displayStatuses()
+        
+    elif key == 110: #n key
+        increaseNumOfRobots()
+        displayStatuses()
+        
     elif key == 112: #p key
-        #drawObjects = not drawObjects
-        displayPrint("objectsPts:",objectsPts.shape)
-        displayPrint(objectsPts)
-        displayPrint("gftt:",gftt.shape)
-        displayPrint(gftt)
+        print "------------------------------"
+        print "objectsPts:",objectsPts.shape
+        print objectsPts,"\n"
+        print "gftt:",gftt.shape
+        print gftt
+        print "------------------------------"
         
     elif key == 114: #r key
         objectsPts[objectIndex] = resetObjData()
