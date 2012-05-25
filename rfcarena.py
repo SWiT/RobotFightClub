@@ -1,5 +1,5 @@
 import cv2
-import sys, math
+import sys, math, time
 from numpy import *
 
 ###############
@@ -57,7 +57,8 @@ def displayMenu ():
     print "'t' Start tracking"
     print "'v' Toggle output view."
     print "'x' Reset all points."
-    print "'Esc' or 'Space bar' to exit."
+    print "'Space bar' to pause/play video playback."
+    print "'Esc' to exit."
     print "------------------------------"
 
 
@@ -197,14 +198,22 @@ def findBots(Img):
             
 ###############
 ## SETUP
-###############            
+###############
+playFromFile = False
+loopVideo = False            
 if len(sys.argv) > 1:
+  playFromFile = True
   cap = cv2.VideoCapture(sys.argv[1])
+  if len(sys.argv) > 2:
+    if sys.argv[2] == "-l":
+      loopVideo = True
 else:
   cap = cv2.VideoCapture(0)
 cv2.namedWindow("ArenaScanner")
 key = -1
 
+FPS = 30 # For video file playback only. 30 seems to match actual robot speed.
+paused = False
 drawing = True
 tracking = False
 drawObjects = True
@@ -232,15 +241,28 @@ success, prevImg = cap.read()
 displayMenu()
 displayStatuses()
 
+prevTime = time.time()
 
 ###############
 ## LOOP
 ###############
 while True:
-    #get next frame from capture device
-    success, nextImg = cap.read()
-    if not success:
-        break;
+    if playFromFile == True and paused == False:
+        while time.time() < prevTime + 1.0/FPS:
+            time.sleep(0.01)
+        prevTime = time.time()
+
+    if playFromFile == False or paused == False:
+        #get next frame from capture device
+        success, nextImg = cap.read()
+        lastImg = nextImg
+        if not success:
+            if loopVideo:
+                cap = cv2.VideoCapture(sys.argv[1])
+                continue
+            break;
+    else:
+        nextImg = lastImg
 
 
     #Apply image transformations
@@ -282,8 +304,11 @@ while True:
     
     #process key presses        
     key = cv2.waitKey(1)        
-    if key == 27 or key == 32:  #esc or spacebar
+    if key == 27:  #esc
         break #exit
+
+    if key == 32: #spacebar
+        paused = not paused
         
     elif key == 99: #c key
         objectIndex += 1
