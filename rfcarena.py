@@ -1,5 +1,5 @@
 import cv2
-import sys, math
+import sys, math, time
 from numpy import *
 
 ###############
@@ -212,6 +212,7 @@ else:
 cv2.namedWindow("ArenaScanner")
 key = -1
 
+FPS = 30 # For video file playback only. 30 seems to match actual robot speed.
 paused = False
 drawing = True
 tracking = False
@@ -240,11 +241,17 @@ success, prevImg = cap.read()
 displayMenu()
 displayStatuses()
 
+prevTime = time.time()
 
 ###############
 ## LOOP
 ###############
 while True:
+    if playFromFile == True and paused == False:
+        while time.time() < prevTime + 1.0/FPS:
+            time.sleep(0.01)
+        prevTime = time.time()
+
     if playFromFile == False or paused == False:
         #get next frame from capture device
         success, nextImg = cap.read()
