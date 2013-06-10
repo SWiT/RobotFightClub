@@ -5,3 +5,7 @@ Robot Fight Club Arena is a platform of Python and Arduino (C) that uses Python 
 The game is simple.  Each robot tries to pop the balloon of the other robots and be the last alive.
 
 We are currently in Beta stages.  Positioning works but could use optimizations.  The 433Mhz Radio that each Arduino uses to received the position of itself and the other robots could use review.  The QR scanning with zbar can be set to focus on just the arena area.  Setting zbar to increase the number of scanning passes on certain areas of the image is also possible.
+
+https://github.com/SWiT/RobotFightClubArena
+https://github.com/SWiT/RobotKnifeFight
+https://github.com/kc8nod/RobotKnifeFight
