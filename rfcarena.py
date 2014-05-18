@@ -123,7 +123,6 @@ colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217)) #Blue,
 
 displayMenu()
 
-arenaId = 0
 arenaSize = (70.5, 46.5) #Arena size in inches
 
 arenaCorners = [(0,0),(0,0),(0,0),(0,0)]
@@ -222,7 +221,7 @@ while True:
         cv2.circle(outputImg, pt, 30, color, 2)
         textPt = (pt[0]-8, pt[1]+8)
         cv2.putText(outputImg, str(idx), textPt, cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
-        ang = botHeading[idx]*math.pi/180
+        ang = botHeading[idx]*(math.pi/180) #convert back to radians
         pt0 = ((pt[0]+int(math.cos(ang)*30)), (pt[1]-int(math.sin(ang)*30)))
         pt1 = ((pt[0]+int(math.cos(ang)*30*4)), (pt[1]-int(math.sin(ang)*30*4)))
         cv2.line(outputImg, pt0, pt1, color, 2)
@@ -265,7 +264,8 @@ while True:
 
 
     #Process key presses        
-    key = cv2.waitKey(10)        
+    key = cv2.waitKey(10)
+    print key        
     if key>0:
         if key == 27:  #esc
             break #exit
@@ -273,26 +273,19 @@ while True:
         elif chr(key) == 'h': #h key
             displayMenu()
             
-        elif chr(key) == 'v': #v key
-            verboseScan = not verboseScan
-            displayPrint("verboseScan:",verboseScan)
-
-        elif chr(key) == 't': #t key
-            verboseTransmit = not verboseTransmit
-            displayPrint("verboseTransmit:",verboseTransmit)
-
+        
         elif chr(key) == 'd': #d key
             displayMode += 1
             if displayMode > 3:
                 displayMode = 0
-            displayPrint("displayMode:",displayMode)
+            print("displayMode:",displayMode)
         
         elif chr(key) == 'r': #r key
             botAlive = [True, True, True, True]
             botLocAbs = [(0,0), (0,0), (0,0), (0,0)]
             botLocArena = [(0,0), (0,0), (0,0), (0,0)]
             botHeading = [0, 0, 0, 0]
-            displayPrint("reset arena statuses")
+            print("reset arena statuses")
             arenaCorners = [(0,0),(0,0),(0,0),(0,0)]
             arenaInnerCorners = [(0,0),(0,0),(0,0),(0,0)]
             gameOn = False
@@ -301,14 +294,14 @@ while True:
         elif 48 <= key and key <=51: #0-3
             botid = key-48
             botAlive[botid] = not botAlive[botid]
-            displayPrint("bot "+str(botid)+" alive:",botAlive[botid])
+            print("bot "+str(botid)+" alive:",botAlive[botid])
         
         elif chr(key) == ' ': #space key
             gameOn = not gameOn
-            displayPrint("gameOn:",gameOn)
+            print("gameOn:",gameOn)
 
         else:
-            displayPrint("unassigned key", key, "'"+chr(key)+"'")
+            print("unassigned key", key, "'"+chr(key)+"'")
             displayMenu()
     
     
