@@ -79,7 +79,7 @@ key = -1
 
 displayMode = 1
 
-maxBots = 4
+maxBots = 1
 
 #Prompt for settings
 #Camera ID
@@ -117,7 +117,9 @@ cap.set(CV_CAP_PROP_FRAME_WIDTH, resolutions[resolutionindex][0])
 cap.set(CV_CAP_PROP_FRAME_HEIGHT, resolutions[resolutionindex][1])
 
 #DataMatrix  
-dm_read = DataMatrix(max_count = 8, timeout = 100, shape = DataMatrix.DmtxSymbol10x10)
+dm_max = maxBots + 4;
+dm_timeout = 300
+dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
 
 colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217)) #Blue, Green, Red, Yellow, Purple
 
@@ -142,7 +144,7 @@ while True:
     #get next frame from capture device
     success, origImg = cap.read()
     if not success:
-        displayPrint("Error reading from camera.");
+        print("Error reading from camera.");
         break;
 
     #Apply image transformationse
@@ -164,7 +166,17 @@ while True:
     for x in range(1, dm_read.count()+1):
         symbol = dm_read.stats(x)
         
-
+        #Arena Corners
+        match = arena_pattern.match(symbol[0])
+        if match:
+            c = int(match.group(1))
+            if displayMode < 3:
+                drawBorder(outputImg, symbol[1], colorCode[0], 2)
+                pt = (symbol[1][1][0]-35, symbol[1][1][1]-25)  
+                cv2.putText(outputImg, str(c), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[0], 2)
+                arenaCorners[c] = symbol[1][c]
+                ic = (c+2)%4
+                arenaInnerCorners[c] = symbol[1][ic]
 
         #Bot Symbol
         match = bot_pattern.match(symbol[0])
@@ -177,15 +189,16 @@ while True:
             #update the bots location
             botLocAbs[botId] = pt
             if arenaReady():            
-                wallCenterX = findDiffPt(arenaCorners[0],arenaCorners[3])
-                wallCenterY = findDiffPt(arenaCorners[0],arenaCorners[1])
-                maxX = arenaCorners[3][0]-arenaCorners[0][0]
-                maxY = arenaCorners[1][1]-arenaCorners[0][1]
+                wallCenterX = findDiffPt(arenaCorners[1],arenaCorners[0])
+                wallCenterY = findDiffPt(arenaCorners[3],arenaCorners[0])
+                maxX = arenaCorners[1][0]-arenaCorners[0][0]
+                maxY = arenaCorners[3][1]-arenaCorners[0][1]
                 arenaPtX = pt[0]-wallCenterY[0]
                 arenaPtY = pt[1]-wallCenterX[1]
                 arenaPtX = int(float(arenaPtX)/float(maxX)*arenaSize[0])
                 arenaPtY = int(float(arenaPtY)/float(maxY)*arenaSize[1])
                 botLocArena[botId] = (arenaPtX, arenaPtY)
+                cv2.putText(outputImg, "!!!", arenaCorners[0], cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[1], 2)
 
             #update the bots heading
             x = symbol[1][3][0] - symbol[1][0][0]
@@ -197,11 +210,11 @@ while True:
             #draw the borders, heading, and text for bot symbol
             if displayMode < 3:
                 drawBorder(outputImg, symbol[1], colorCode[1], 2)                  
-                pt = (pt[0]-20, pt[1]+10)            
+                pt = (pt[0]-15, pt[1]+10)            
                 cv2.putText(outputImg, match.group(1), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[1], 2)
                 ptdiff = findDiffs(symbol[1][1], symbol[1][2])
                 pt0 = findDiffPt(symbol[1][2], symbol[1][3])
-                pt1 = (pt0[0]+int(ptdiff[0]*0.66), pt0[1]+int(ptdiff[1]*0.66))
+                pt1 = (pt0[0]+int(ptdiff[0]*1.20), pt0[1]+int(ptdiff[1]*1.20))
                 cv2.line(outputImg, pt0, pt1, colorCode[1], 2)
 
 
@@ -225,7 +238,7 @@ while True:
         cv2.putText(outputImg, str(idx), textPt, cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
         ang = botHeading[idx]*(math.pi/180) #convert back to radians
         pt0 = ((pt[0]+int(math.cos(ang)*30)), (pt[1]-int(math.sin(ang)*30)))
-        pt1 = ((pt[0]+int(math.cos(ang)*30*4)), (pt[1]-int(math.sin(ang)*30*4)))
+        pt1 = ((pt[0]+int(math.cos(ang)*30*3.25)), (pt[1]-int(math.sin(ang)*30*3.25)))
         cv2.line(outputImg, pt0, pt1, color, 2)
 
     #Draw Statuses
@@ -234,22 +247,25 @@ while True:
     for idx in range(0,4):
         if botLocAbs[idx][0]==0 and botLocAbs[idx][1]==0:
             continue
-        status = str(idx)+":"+str(botLocArena[idx])+' '+str(botHeading[idx])
+        status = str(idx)+":"+str(botLocArena[idx])+' '+str(round(botHeading[idx],1))
         cv2.putText(outputImg, status, pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
         pt = (pt[0],pt[1]+lh)
+
     pt = (0,height-10)
     status = "Game On" if gameOn else "Game Off"
     cv2.putText(outputImg, status, pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
 
-    #Display Output       
+    #crosshair in center
+    pt0 = (width/2,height/2-5)
+    pt1 = (width/2,height/2+5)
+    cv2.line(outputImg, pt0, pt1, colorCode[4], 2)
+    pt0 = (width/2-5,height/2)
+    pt1 = (width/2+5,height/2)
+    cv2.line(outputImg, pt0, pt1, colorCode[4], 2)
+        
+    #Display Mode       
     if displayMode == 0: #display source image
         outputImg = origImg
-        pt0 = (width/2,height/2-5)
-        pt1 = (width/2,height/2+5)
-        cv2.line(outputImg, pt0, pt1, colorCode[4], 2)
-        pt0 = (width/2-5,height/2)
-        pt1 = (width/2+5,height/2)
-        cv2.line(outputImg, pt0, pt1, colorCode[4], 2)
         displayModeLabel = "source"   
         
     elif displayMode == 1: #display source with data overlay
@@ -262,13 +278,16 @@ while True:
         displayModeLabel = "bot"
 
     cv2.putText(outputImg, displayModeLabel, (0,15), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
+    cv2.putText(outputImg, "Bots:"+str(maxBots), (110,15), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
+    cv2.putText(outputImg, "timeout:"+str(dm_timeout), (220,15), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
     cv2.imshow("ArenaScanner", outputImg)
 
 
     #Process key presses        
     key = cv2.waitKey(10)
-    print key        
+            
     if key>0:
+        print key
         if key == 27:  #esc
             break #exit
 
