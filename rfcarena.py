@@ -131,7 +131,7 @@ arenaInnerCorners = [(0,0),(0,0),(0,0),(0,0)]
 botLocAbs = [(0,0), (0,0), (0,0), (0,0)]
 botLocArena = [(0,0), (0,0), (0,0), (0,0)]
 botHeading = [0, 0, 0, 0]
-botAlive = [True, True, True, True]
+botAlive = [False, False, False, False]
 
 gameOn = False
 
@@ -164,6 +164,8 @@ while True:
     for x in range(1, dm_read.count()+1):
         symbol = dm_read.stats(x)
         
+
+
         #Bot Symbol
         match = bot_pattern.match(symbol[0])
         if match:
