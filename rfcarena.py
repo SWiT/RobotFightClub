@@ -11,20 +11,6 @@ from pydmtx import DataMatrix
 ###############
 ## FUNCTIONS
 ###############
-
-def displayMenu():
-    print "------------------------------"
-    print "'h' Print this help menu."
-    print "'d' Toggle display mode."
-    print "'t' Toggle verbose transmitting."
-    print "'r' reset arena statuses."
-    print "0-3 toggle bot alive."
-    print "'v' Toggle verbose scanning."
-    print "SPACE Toggles game on and off."
-    print "'Esc' to exit."
-    print
-    
-   
 def dist(p0, p1):
     return math.sqrt((p0[0] - p1[0])**2 + (p0[1] - p1[1])**2)
 
@@ -59,10 +45,27 @@ def arenaReady():
             ready = False
     return ready
 
-def trackbarCallback(v):
+def updateTimeout(v):
     global dm_timeout, dm_read
     dm_timeout = v
     dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
+    return
+
+def updateMaxBots(v):
+    global maxBots, dm_max, dm_read
+    maxBots = v
+    dm_max = maxBots + 4
+    dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
+    return
+
+def updateDisplayMode(v):
+    global displayMode
+    displayMode = v
+    return
+
+def toggleGame(v):
+    global gameOn
+    gameOn = True if v==1 else False
     return
 
 ###############
@@ -78,14 +81,15 @@ resolutionindex = 0
 resolutions = [(640,480),(1280,720),(1920,1080)]
 
 cv2.namedWindow("ArenaScanner")
+cv2.namedWindow("ControlPanel")
 
 cv2.startWindowThread()
 
-key = -1
-
+gameOn = False
 displayMode = 1
-
 maxBots = 1
+colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217)) #Blue, Green, Red, Yellow, Purple
+arenaSize = (70.5, 46.5) #Arena size in inches
 
 #Prompt for settings
 #Camera ID
@@ -127,23 +131,19 @@ dm_max = maxBots + 4; #four corners plus the bots
 dm_timeout = 200
 dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
 
-#Trackbar
-cv2.createTrackbar('Timeout','ArenaScanner',dm_timeout,1000, trackbarCallback)
-
-colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217)) #Blue, Green, Red, Yellow, Purple
-
-arenaSize = (70.5, 46.5) #Arena size in inches
+#Control Panel
+cv2.createTrackbar('Bots','ControlPanel',maxBots,4,updateMaxBots,)
+cv2.createTrackbar('Scan (ms)','ControlPanel',dm_timeout,1000,updateTimeout)
+cv2.createTrackbar('Display Mode','ControlPanel',displayMode,3,updateDisplayMode)
+cv2.createTrackbar('Game Off/On','ControlPanel',0,1,toggleGame)
 
 arenaCorners = [(0,0),(0,0),(0,0),(0,0)]
-arenaInnerCorners = [(0,0),(0,0),(0,0),(0,0)]
 
 botLocAbs = [(0,0), (0,0), (0,0), (0,0)]
 botLocArena = [(0,0), (0,0), (0,0), (0,0)]
 botHeading = [0, 0, 0, 0]
 botAlive = [False, False, False, False]
 botTime = [time.time(), time.time(), time.time(), time.time()]
-
-gameOn = False
 
 ###############
 ## LOOP
@@ -182,8 +182,6 @@ while True:
                 pt = (symbol[1][1][0]-35, symbol[1][1][1]-25)  
                 cv2.putText(outputImg, str(c), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[0], 2)
                 arenaCorners[c] = symbol[1][c]
-                ic = (c+2)%4
-                arenaInnerCorners[c] = symbol[1][ic]
 
         #Bot Symbol
         match = bot_pattern.match(symbol[0])
@@ -195,7 +193,6 @@ while True:
 
             #update botTime
             botTime[botId] = time.time();
-            #print botTime[botId]
 
             #update the bots location
             botLocAbs[botId] = pt
@@ -227,11 +224,9 @@ while True:
 
 
 
-
     #Draw Objects
     #Arena
     drawBorder(outputImg, arenaCorners, colorCode[0], 2)  
-    drawBorder(outputImg, arenaInnerCorners, colorCode[0], 1)  
 
     #Last Know Bot Locations
     for idx,pt in enumerate(botLocAbs):
@@ -265,14 +260,6 @@ while True:
     pt = (0,height-10)
     status = "Game On" if gameOn else "Game Off"
     cv2.putText(outputImg, status, pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
-
-    #crosshair in center
-    pt0 = (width/2,height/2-5)
-    pt1 = (width/2,height/2+5)
-    cv2.line(outputImg, pt0, pt1, colorCode[4], 2)
-    pt0 = (width/2-5,height/2)
-    pt1 = (width/2+5,height/2)
-    cv2.line(outputImg, pt0, pt1, colorCode[4], 2)
         
     #Display Mode       
     if displayMode == 0: #display source image
@@ -284,14 +271,20 @@ while True:
         displayModeLabel = "Data Only"
     elif displayMode == 3: #display the only the bots point of view
         displayModeLabel = "Bot POV"
-
     cv2.putText(outputImg, displayModeLabel, (0,15), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
-    cv2.putText(outputImg, "Bots:"+str(maxBots), (110,15), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
-    cv2.putText(outputImg, "Scan:"+str(dm_timeout)+"ms", (220,15), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
+
+    #crosshair in center
+    pt0 = (width/2,height/2-5)
+    pt1 = (width/2,height/2+5)
+    cv2.line(outputImg, pt0, pt1, colorCode[4], 2)
+    pt0 = (width/2-5,height/2)
+    pt1 = (width/2+5,height/2)
+    cv2.line(outputImg, pt0, pt1, colorCode[4], 2)
+
+    #Display the image or frame of video
     cv2.imshow("ArenaScanner", outputImg)
 
-
-    #Process key presses        
+    #Hold Esc to Exit
     key = cv2.waitKey(1) & 0xFF        
     if key == 27:  #esc
         break #exit
@@ -301,7 +294,7 @@ while True:
 ## END LOOP
 ###############
 cap.release()
-cv2.destroyAllWindows()      
+cv2.destroyAllWindows()
 print "Exiting."
 
 
