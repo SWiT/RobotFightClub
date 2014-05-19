@@ -141,6 +141,7 @@ botLocAbs = [(0,0), (0,0), (0,0), (0,0)]
 botLocArena = [(0,0), (0,0), (0,0), (0,0)]
 botHeading = [0, 0, 0, 0]
 botAlive = [False, False, False, False]
+botTime = [time.time(), time.time(), time.time(), time.time()]
 
 gameOn = False
 
@@ -166,8 +167,7 @@ while True:
         outputImg = origImg;
 
     #Scan for DataMatrix
-    dm_read.decode(width, height, buffer(origImg.tostring()))
-    #print dm_read.count()    
+    dm_read.decode(width, height, buffer(origImg.tostring()))  
 
     #draw borders on detected symbols and record object locations
     for x in range(1, dm_read.count()+1):
@@ -192,6 +192,10 @@ while True:
             botId = int(match.group(1))
             if botId >= maxBots:
                 continue
+
+            #update botTime
+            botTime[botId] = time.time();
+            #print botTime[botId]
 
             #update the bots location
             botLocAbs[botId] = pt
@@ -248,10 +252,12 @@ while True:
     #Draw Statuses
     lh = 20 #line height
     pt = (0,40)
-    for idx in range(0,4):
-        if botLocAbs[idx][0]==0 and botLocAbs[idx][1]==0:
-            continue
-        status = str(idx)+":"+str(botLocArena[idx])+' '+str(botHeading[idx])
+    for idx in range(0,maxBots):
+        status = str(idx)+":"
+        status += ' '+str(botLocArena[idx])
+        status += ' '+str(botHeading[idx])
+        status += ' '+str(int(round((time.time()-botTime[idx])*1000,0)))
+        status += ' '+("Alive" if botAlive[idx] else "Dead")
         cv2.putText(outputImg, status, pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
         pt = (pt[0],pt[1]+lh)
     
@@ -271,20 +277,17 @@ while True:
     #Display Mode       
     if displayMode == 0: #display source image
         outputImg = origImg
-        displayModeLabel = "source"   
-        
+        displayModeLabel = "Source"   
     elif displayMode == 1: #display source with data overlay
-        displayModeLabel = "overlay"
-
+        displayModeLabel = "Overlay"
     elif displayMode == 2: #display only data overlay
-        displayModeLabel = "data"
-
+        displayModeLabel = "Data Only"
     elif displayMode == 3: #display the only the bots point of view
-        displayModeLabel = "bot"
+        displayModeLabel = "Bot POV"
 
     cv2.putText(outputImg, displayModeLabel, (0,15), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
     cv2.putText(outputImg, "Bots:"+str(maxBots), (110,15), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
-    cv2.putText(outputImg, "timeout:"+str(dm_timeout), (220,15), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
+    cv2.putText(outputImg, "Scan:"+str(dm_timeout)+"ms", (220,15), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
     cv2.imshow("ArenaScanner", outputImg)
 
 
@@ -299,9 +302,7 @@ while True:
 ###############
 cap.release()
 cv2.destroyAllWindows()      
-print
 print "Exiting."
-print    
 
 
 
