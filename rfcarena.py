@@ -59,6 +59,12 @@ def arenaReady():
             ready = False
     return ready
 
+def trackbarCallback(v):
+    global dm_timeout, dm_read
+    dm_timeout = v
+    dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
+    return
+
 ###############
 ## SETUP
 ###############
@@ -117,13 +123,14 @@ cap.set(CV_CAP_PROP_FRAME_WIDTH, resolutions[resolutionindex][0])
 cap.set(CV_CAP_PROP_FRAME_HEIGHT, resolutions[resolutionindex][1])
 
 #DataMatrix  
-dm_max = maxBots + 4;
-dm_timeout = 300
+dm_max = maxBots + 4; #four corners plus the bots
+dm_timeout = 200
 dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
 
-colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217)) #Blue, Green, Red, Yellow, Purple
+#Trackbar
+cv2.createTrackbar('Timeout','ArenaScanner',dm_timeout,1000, trackbarCallback)
 
-displayMenu()
+colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217)) #Blue, Green, Red, Yellow, Purple
 
 arenaSize = (70.5, 46.5) #Arena size in inches
 
@@ -193,19 +200,16 @@ while True:
                 wallCenterY = findDiffPt(arenaCorners[3],arenaCorners[0])
                 maxX = arenaCorners[1][0]-arenaCorners[0][0]
                 maxY = arenaCorners[3][1]-arenaCorners[0][1]
-                arenaPtX = pt[0]-wallCenterY[0]
-                arenaPtY = pt[1]-wallCenterX[1]
-                arenaPtX = int(float(arenaPtX)/float(maxX)*arenaSize[0])
-                arenaPtY = int(float(arenaPtY)/float(maxY)*arenaSize[1])
+                arenaPtX = int(float(pt[0]-wallCenterY[0])/float(maxX)*arenaSize[0])
+                arenaPtY = int(float(pt[1]-wallCenterX[1])/float(maxY)*arenaSize[1])
                 botLocArena[botId] = (arenaPtX, arenaPtY)
-                cv2.putText(outputImg, "!!!", arenaCorners[0], cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[1], 2)
-
+                
             #update the bots heading
             x = symbol[1][3][0] - symbol[1][0][0]
             y = symbol[1][0][1] - symbol[1][3][1]
             h = math.degrees(math.atan2(y,x))
             if h < 0: h = 360 + h
-            botHeading[botId] = h
+            botHeading[botId] = int(round(h,0))
 
             #draw the borders, heading, and text for bot symbol
             if displayMode < 3:
@@ -247,10 +251,11 @@ while True:
     for idx in range(0,4):
         if botLocAbs[idx][0]==0 and botLocAbs[idx][1]==0:
             continue
-        status = str(idx)+":"+str(botLocArena[idx])+' '+str(round(botHeading[idx],1))
+        status = str(idx)+":"+str(botLocArena[idx])+' '+str(botHeading[idx])
         cv2.putText(outputImg, status, pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
         pt = (pt[0],pt[1]+lh)
-
+    
+    #Game Status
     pt = (0,height-10)
     status = "Game On" if gameOn else "Game Off"
     cv2.putText(outputImg, status, pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
@@ -284,46 +289,9 @@ while True:
 
 
     #Process key presses        
-    key = cv2.waitKey(10)
-            
-    if key>0:
-        print key
-        if key == 27:  #esc
-            break #exit
-
-        elif chr(key) == 'h': #h key
-            displayMenu()
-            
-        
-        elif chr(key) == 'd': #d key
-            displayMode += 1
-            if displayMode > 3:
-                displayMode = 0
-            print("displayMode:",displayMode)
-        
-        elif chr(key) == 'r': #r key
-            botAlive = [True, True, True, True]
-            botLocAbs = [(0,0), (0,0), (0,0), (0,0)]
-            botLocArena = [(0,0), (0,0), (0,0), (0,0)]
-            botHeading = [0, 0, 0, 0]
-            print("reset arena statuses")
-            arenaCorners = [(0,0),(0,0),(0,0),(0,0)]
-            arenaInnerCorners = [(0,0),(0,0),(0,0),(0,0)]
-            gameOn = False
-            
-
-        elif 48 <= key and key <=51: #0-3
-            botid = key-48
-            botAlive[botid] = not botAlive[botid]
-            print("bot "+str(botid)+" alive:",botAlive[botid])
-        
-        elif chr(key) == ' ': #space key
-            gameOn = not gameOn
-            print("gameOn:",gameOn)
-
-        else:
-            print("unassigned key", key, "'"+chr(key)+"'")
-            displayMenu()
+    key = cv2.waitKey(1) & 0xFF        
+    if key == 27:  #esc
+        break #exit
     
     
 ###############
