@@ -22,7 +22,7 @@ def findCenter(pts):
         y += pts[i][1]
     return (int(x/4), int(y/4))
 
-def findDiffPt(pt0, pt1):
+def findMidPt(pt0, pt1):
     x = int((pt0[0]+pt1[0])/2)
     y = int((pt0[1]+pt1[1])/2)
     return (x,y)
@@ -63,6 +63,11 @@ def updateDisplayMode(v):
     displayMode = v
     return
 
+def updateThreshold(v):
+    global threshold
+    threshold = v
+    return
+
 def toggleGame(v):
     global gameOn
     gameOn = True if v==1 else False
@@ -88,8 +93,9 @@ cv2.startWindowThread()
 gameOn = False
 displayMode = 1
 maxBots = 1
-colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217)) #Blue, Green, Red, Yellow, Purple
+colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217), (127,127,127)) #Blue, Green, Red, Yellow, Purple, Gray
 arenaSize = (70.5, 46.5) #Arena size in inches
+threshold = 150
 
 #Prompt for settings
 #Camera ID
@@ -136,6 +142,7 @@ cv2.createTrackbar('Bots','ControlPanel',maxBots,4,updateMaxBots,)
 cv2.createTrackbar('Scan (ms)','ControlPanel',dm_timeout,1000,updateTimeout)
 cv2.createTrackbar('Display Mode','ControlPanel',displayMode,3,updateDisplayMode)
 cv2.createTrackbar('Game Off/On','ControlPanel',0,1,toggleGame)
+cv2.createTrackbar('Threshold','ControlPanel',threshold,255,updateThreshold)
 
 arenaCorners = [(0,0),(0,0),(0,0),(0,0)]
 
@@ -155,17 +162,19 @@ while True:
         print("Error reading from camera.");
         break;
 
-    #Apply image transformationse
-    modImg = cv2.cvtColor(origImg, cv2.COLOR_BGR2GRAY) #convert to grayscale
-    width = size(modImg, 1)
-    height = size(modImg, 0)
+    #Apply image transformations
+    grayImg = cv2.cvtColor(origImg, cv2.COLOR_BGR2GRAY) #convert to grayscale
+    ret,threshImg = cv2.threshold(grayImg,threshold,255,cv2.THRESH_BINARY)
+    width = size(grayImg, 1)
+    height = size(grayImg, 0)
     if displayMode >= 2:
         outputImg = zeros((height,width,3), uint8) #create a blank image
     elif displayMode == 0:
-        outputImg = cv2.cvtColor(modImg, cv2.COLOR_GRAY2BGR)        
+        outputImg = cv2.cvtColor(threshImg, cv2.COLOR_GRAY2BGR)
     else:
         outputImg = origImg;
 
+            
     #Scan for DataMatrix
     dm_read.decode(width, height, buffer(origImg.tostring()))  
 
@@ -197,8 +206,8 @@ while True:
             #update the bots location
             botLocAbs[botId] = pt
             if arenaReady():            
-                wallCenterX = findDiffPt(arenaCorners[1],arenaCorners[0])
-                wallCenterY = findDiffPt(arenaCorners[3],arenaCorners[0])
+                wallCenterX = findMidPt(arenaCorners[1],arenaCorners[0])
+                wallCenterY = findMidPt(arenaCorners[3],arenaCorners[0])
                 maxX = arenaCorners[1][0]-arenaCorners[0][0]
                 maxY = arenaCorners[3][1]-arenaCorners[0][1]
                 arenaPtX = int(float(pt[0]-wallCenterY[0])/float(maxX)*arenaSize[0])
@@ -212,13 +221,23 @@ while True:
             if h < 0: h = 360 + h
             botHeading[botId] = int(round(h,0))
 
+            #determine the bot's alive or dead status
+            pt0 = symbol[1][0]
+            pt2 = symbol[1][2]
+            pt3 = symbol[1][3]
+            x = int((pt2[0] - pt3[0])*.33 + pt3[0])
+            y = int((pt2[1] - pt3[1])*.33 + pt3[1])
+            x += int((pt3[0] - pt0[0])*.24)
+            y += int((pt3[1] - pt0[1])*.24)
+            cv2.circle(outputImg, (x,y), 5, colorCode[5])
+
             #draw the borders, heading, and text for bot symbol
             if displayMode < 3:
                 drawBorder(outputImg, symbol[1], colorCode[1], 2)                  
                 pt = (pt[0]-15, pt[1]+10)            
                 cv2.putText(outputImg, match.group(1), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[1], 2)
                 ptdiff = findDiffs(symbol[1][1], symbol[1][2])
-                pt0 = findDiffPt(symbol[1][2], symbol[1][3])
+                pt0 = findMidPt(symbol[1][2], symbol[1][3])
                 pt1 = (pt0[0]+int(ptdiff[0]*1.20), pt0[1]+int(ptdiff[1]*1.20))
                 cv2.line(outputImg, pt0, pt1, colorCode[1], 2)
 
@@ -261,10 +280,9 @@ while True:
     status = "Game On" if gameOn else "Game Off"
     cv2.putText(outputImg, status, pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
         
-    #Display Mode       
+    #Display Mode Labels       
     if displayMode == 0: #display source image
-        outputImg = origImg
-        displayModeLabel = "Source"   
+        displayModeLabel = "Threshold"   
     elif displayMode == 1: #display source with data overlay
         displayModeLabel = "Overlay"
     elif displayMode == 2: #display only data overlay
