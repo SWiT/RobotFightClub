@@ -129,8 +129,10 @@ else:
     print "using default"
 
 cap = cv2.VideoCapture(cameraindex)
-cap.set(CV_CAP_PROP_FRAME_WIDTH, resolutions[resolutionindex][0])
-cap.set(CV_CAP_PROP_FRAME_HEIGHT, resolutions[resolutionindex][1])
+maxX = resolutions[resolutionindex][0]
+maxY = resolutions[resolutionindex][1]
+cap.set(CV_CAP_PROP_FRAME_WIDTH, maxX)
+cap.set(CV_CAP_PROP_FRAME_HEIGHT, maxY)
 
 #DataMatrix  
 dm_max = maxBots + 4; #four corners plus the bots
@@ -144,7 +146,7 @@ cv2.createTrackbar('Display Mode','ControlPanel',displayMode,3,updateDisplayMode
 cv2.createTrackbar('Game Off/On','ControlPanel',0,1,toggleGame)
 cv2.createTrackbar('Threshold','ControlPanel',threshold,255,updateThreshold)
 
-arenaCorners = [(0,0),(0,0),(0,0),(0,0)]
+arenaCorners = [(0,maxY),(maxX,maxY),(maxX,0),(0,0)]
 
 botLocAbs = [(0,0), (0,0), (0,0), (0,0)]
 botLocArena = [(0,0), (0,0), (0,0), (0,0)]
@@ -186,11 +188,12 @@ while True:
         match = arena_pattern.match(symbol[0])
         if match:
             c = int(match.group(1))
-            if displayMode < 3:
-                drawBorder(outputImg, symbol[1], colorCode[0], 2)
-                pt = (symbol[1][1][0]-35, symbol[1][1][1]-25)  
-                cv2.putText(outputImg, str(c), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[0], 2)
+            if 0 <= c and c <= 3:
                 arenaCorners[c] = symbol[1][c]
+                if displayMode < 3:
+                    drawBorder(outputImg, symbol[1], colorCode[0], 2)
+                    pt = (symbol[1][1][0]-35, symbol[1][1][1]-25)  
+                    cv2.putText(outputImg, str(c), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[0], 2)
 
         #Bot Symbol
         match = bot_pattern.match(symbol[0])
@@ -229,7 +232,11 @@ while True:
             y = int((pt2[1] - pt3[1])*.33 + pt3[1])
             x += int((pt3[0] - pt0[0])*.24)
             y += int((pt3[1] - pt0[1])*.24)
-            cv2.circle(outputImg, (x,y), 5, colorCode[5])
+            cv2.rectangle(outputImg, (x+5,y+5), (x-5,y-5), colorCode[5])
+            roi = threshImg[y-5:y+6,x-5:x+6]
+            scAvg = cv2.mean(roi)
+            botAlive[botId] = scAvg[0] >= 10
+            
 
             #draw the borders, heading, and text for bot symbol
             if displayMode < 3:
