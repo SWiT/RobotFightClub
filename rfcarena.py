@@ -85,9 +85,10 @@ def updateVideoDevice(v):
     return
     
 def updateResolution(v):
-    global resolutionindex
+    global resolutionindex, arenaCorners
     resolutionindex = v
     initCaptureDevice()
+    arenaCorners = [(0,maxY),(maxX,maxY),(maxX,0),(0,0)]
     return
 
 def toggleGame(v):
