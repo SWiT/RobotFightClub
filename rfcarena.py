@@ -67,6 +67,28 @@ def updateThreshold(v):
     global threshold
     threshold = v
     return
+    
+def initCaptureDevice():
+    global videoDevice, cap, maxX, maxY, resolutions, resolutionindex
+    if cap != -1: cap.release()
+    cap = cv2.VideoCapture(videoDevice)
+    maxX = resolutions[resolutionindex][0]
+    maxY = resolutions[resolutionindex][1]
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, maxX)
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, maxY)
+    return
+        
+def updateVideoDevice(v):
+    global videoDevice
+    videoDevice = v
+    initCaptureDevice()
+    return
+    
+def updateResolution(v):
+    global resolutionindex
+    resolutionindex = v
+    initCaptureDevice()
+    return
 
 def toggleGame(v):
     global gameOn
@@ -76,14 +98,15 @@ def toggleGame(v):
 ###############
 ## SETUP
 ###############
-
-index_pattern = re.compile('^\d+$')
 bot_pattern = re.compile('^(\d{2})$')
 arena_pattern = re.compile('^C(\d)$')
 
-cameraindex = 0
+videoDevice = 0
+maxVideoDevice = 1
 resolutionindex = 0
 resolutions = [(640,480),(1280,720),(1920,1080)]
+cap = -1
+initCaptureDevice()
 
 cv2.namedWindow("ArenaScanner")
 cv2.namedWindow("ControlPanel")
@@ -97,42 +120,6 @@ colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217), (127,1
 arenaSize = (70.5, 46.5) #Arena size in inches
 threshold = 150
 
-#Prompt for settings
-#Camera ID
-print str(sys.argv)
-print "------------------------------"
-if len(sys.argv) >= 2:
-    in_str = sys.argv[1]
-else:
-    print "Enter the camera's index"
-    in_str = raw_input("defaults [%1d] " % cameraindex)
-match = index_pattern.match(in_str)
-if match:
-    print "using "+match.group(0)
-    cameraindex = int(match.group(0))
-else:
-    print "using default"
-
-#Resolution
-if len(sys.argv) >= 3:
-    in_str = sys.argv[2]
-else:
-    print "Enter the camera's resolution "
-    for idx,(x,y) in enumerate(resolutions):
-        print "[{}] {}x{}".format(idx,x,y)
-    in_str = raw_input("defaults [%1d] " % resolutionindex)
-match = index_pattern.match(in_str)
-if match:
-    print "using "+match.group(0)
-    resolutionindex = int(match.group(0))
-else:
-    print "using default"
-
-cap = cv2.VideoCapture(cameraindex)
-maxX = resolutions[resolutionindex][0]
-maxY = resolutions[resolutionindex][1]
-cap.set(CV_CAP_PROP_FRAME_WIDTH, maxX)
-cap.set(CV_CAP_PROP_FRAME_HEIGHT, maxY)
 
 #DataMatrix  
 dm_max = maxBots + 4; #four corners plus the bots
@@ -140,6 +127,8 @@ dm_timeout = 200
 dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
 
 #Control Panel
+cv2.createTrackbar('Video Device','ControlPanel',videoDevice,maxVideoDevice,updateVideoDevice)
+cv2.createTrackbar('Resolution','ControlPanel',resolutionindex,2,updateResolution)
 cv2.createTrackbar('Bots','ControlPanel',maxBots,4,updateMaxBots,)
 cv2.createTrackbar('Scan (ms)','ControlPanel',dm_timeout,1000,updateTimeout)
 cv2.createTrackbar('Display Mode','ControlPanel',displayMode,3,updateDisplayMode)
