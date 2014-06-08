@@ -2,7 +2,7 @@ import cv2
 CV_CAP_PROP_FRAME_WIDTH = 3
 CV_CAP_PROP_FRAME_HEIGHT = 4
 import serial
-import sys, math, time
+import sys, math, time, subprocess
 from numpy import *
 import re
 import Image
@@ -79,19 +79,34 @@ def initCaptureDevice():
     return
         
 def updateVideoDevice(v):
-    global videoDevice
+    global videoDevice, v4l2ucp
     videoDevice = v
+    closev4l2ucp()
     initCaptureDevice()
+    openv4l2ucp()
     return
     
+def openv4l2ucp():
+    global videoDevice, v4l2ucp  
+    v4l2ucp = subprocess.Popen(['v4l2ucp','/dev/video'+str(videoDevice)])
+    return
+
+def closev4l2ucp():
+    global v4l2ucp  
+    if v4l2ucp != -1:
+        v4l2ucp.kill()
+    return
+        
 def updateResolution(v):
     global resolutionindex, arenaCorners
     resolutionindex = v
+    closev4l2ucp()
     initCaptureDevice()
+    openv4l2ucp()
     arenaCorners = [(0,maxY),(maxX,maxY),(maxX,0),(0,0)]
     return
 
-def toggleGame(v):
+def updateGame(v):
     global gameOn
     gameOn = True if v==1 else False
     return
@@ -107,7 +122,14 @@ maxVideoDevice = 1
 resolutionindex = 0
 resolutions = [(640,480),(1280,720),(1920,1080)]
 cap = -1
+v4l2ucp = -1
 initCaptureDevice()
+openv4l2ucp()
+
+cph = 240 #control panel height
+cpw = 320 #control panel width
+cplh = 20 #line height
+cppt = (0,20) #current text position    
 
 cv2.namedWindow("ArenaScanner")
 cv2.namedWindow("ControlPanel")
@@ -133,7 +155,7 @@ cv2.createTrackbar('Resolution','ControlPanel',resolutionindex,2,updateResolutio
 cv2.createTrackbar('Bots','ControlPanel',maxBots,4,updateMaxBots,)
 cv2.createTrackbar('Scan (ms)','ControlPanel',dm_timeout,1000,updateTimeout)
 cv2.createTrackbar('Display Mode','ControlPanel',displayMode,3,updateDisplayMode)
-cv2.createTrackbar('Game Off/On','ControlPanel',0,1,toggleGame)
+cv2.createTrackbar('Game Off/On','ControlPanel',0,1,updateGame)
 cv2.createTrackbar('Threshold','ControlPanel',threshold,255,updateThreshold)
 
 arenaCorners = [(0,maxY),(maxX,maxY),(maxX,0),(0,0)]
@@ -154,19 +176,22 @@ while True:
         print("Error reading from camera.");
         break;
 
+    controlPanelImg = zeros((cph,cpw,3), uint8) #create a blank image for the control panel
+    cppt = (0,20) #current text position  
+
     #Apply image transformations
     grayImg = cv2.cvtColor(origImg, cv2.COLOR_BGR2GRAY) #convert to grayscale
     ret,threshImg = cv2.threshold(grayImg,threshold,255,cv2.THRESH_BINARY)
-    width = size(grayImg, 1)
-    height = size(grayImg, 0)
+    width = size(origImg, 1)
+    height = size(origImg, 0)
     if displayMode >= 2:
         outputImg = zeros((height,width,3), uint8) #create a blank image
     elif displayMode == 0:
         outputImg = cv2.cvtColor(threshImg, cv2.COLOR_GRAY2BGR)
     else:
         outputImg = origImg;
+    
 
-            
     #Scan for DataMatrix
     dm_read.decode(width, height, buffer(origImg.tostring()))  
 
@@ -260,44 +285,51 @@ while True:
         pt1 = ((pt[0]+int(math.cos(ang)*30*3.25)), (pt[1]-int(math.sin(ang)*30*3.25)))
         cv2.line(outputImg, pt0, pt1, color, 2)
 
-    #Draw Statuses
-    lh = 20 #line height
-    pt = (0,40)
+    #Display video device and resolution
+    output = "/dev/video"+str(videoDevice);
+    output += " "+str(resolutions[resolutionindex][0])+"x"+str(resolutions[resolutionindex][1])
+    cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    cppt = (cppt[0],cppt[1]+cplh)
+    
+    #Display Mode Labels
+    displayModeLabel = "Display Mode: "      
+    if displayMode == 0: #display source image
+        displayModeLabel += "Threshold"   
+    elif displayMode == 1: #display source with data overlay
+        displayModeLabel += "Overlay"
+    elif displayMode == 2: #display only data overlay
+        displayModeLabel += "Data Only"
+    elif displayMode == 3: #display the only the bots point of view
+        displayModeLabel += "Bot POV"
+    cv2.putText(controlPanelImg, displayModeLabel, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    cppt = (cppt[0],cppt[1]+cplh)
+    
+    #Game Status
+    status = "Game: On" if gameOn else "Game: Off"
+    cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    cppt = (cppt[0],cppt[1]+cplh)
+    
+    #Draw Bot Statuses
     for idx in range(0,maxBots):
         status = str(idx)+":"
         status += ' '+str(botLocArena[idx])
         status += ' '+str(botHeading[idx])
         status += ' '+str(int(round((time.time()-botTime[idx])*1000,0)))
         status += ' '+("Alive" if botAlive[idx] else "Dead")
-        cv2.putText(outputImg, status, pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
-        pt = (pt[0],pt[1]+lh)
+        cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+        cppt = (cppt[0],cppt[1]+cplh)
     
-    #Game Status
-    pt = (0,height-10)
-    status = "Game On" if gameOn else "Game Off"
-    cv2.putText(outputImg, status, pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
-        
-    #Display Mode Labels       
-    if displayMode == 0: #display source image
-        displayModeLabel = "Threshold"   
-    elif displayMode == 1: #display source with data overlay
-        displayModeLabel = "Overlay"
-    elif displayMode == 2: #display only data overlay
-        displayModeLabel = "Data Only"
-    elif displayMode == 3: #display the only the bots point of view
-        displayModeLabel = "Bot POV"
-    cv2.putText(outputImg, displayModeLabel, (0,15), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 2)
-
     #crosshair in center
     pt0 = (width/2,height/2-5)
     pt1 = (width/2,height/2+5)
-    cv2.line(outputImg, pt0, pt1, colorCode[4], 2)
+    cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
     pt0 = (width/2-5,height/2)
     pt1 = (width/2+5,height/2)
-    cv2.line(outputImg, pt0, pt1, colorCode[4], 2)
+    cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
 
     #Display the image or frame of video
     cv2.imshow("ArenaScanner", outputImg)
+    cv2.imshow("ControlPanel",controlPanelImg)
 
     #Hold Esc to Exit
     key = cv2.waitKey(1) & 0xFF        
