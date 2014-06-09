@@ -155,8 +155,8 @@ cv2.createTrackbar('Resolution','ControlPanel',resolutionindex,2,updateResolutio
 cv2.createTrackbar('Bots','ControlPanel',maxBots,4,updateMaxBots,)
 cv2.createTrackbar('Scan (ms)','ControlPanel',dm_timeout,1000,updateTimeout)
 cv2.createTrackbar('Display Mode','ControlPanel',displayMode,3,updateDisplayMode)
-cv2.createTrackbar('Game Off/On','ControlPanel',0,1,updateGame)
 cv2.createTrackbar('Threshold','ControlPanel',threshold,255,updateThreshold)
+cv2.createTrackbar('Game Off/On','ControlPanel',0,1,updateGame)
 
 arenaCorners = [(0,maxY),(maxX,maxY),(maxX,0),(0,0)]
 
@@ -342,6 +342,7 @@ while True:
 ###############
 cap.release()
 cv2.destroyAllWindows()
+closev4l2ucp()
 print "Exiting."
 
 
