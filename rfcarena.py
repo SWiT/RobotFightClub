@@ -2,7 +2,7 @@ import cv2
 CV_CAP_PROP_FRAME_WIDTH = 3
 CV_CAP_PROP_FRAME_HEIGHT = 4
 import serial
-import sys, math, time, subprocess
+import sys, math, time, subprocess, os
 from numpy import *
 import re
 import Image
@@ -79,7 +79,7 @@ def initCaptureDevice():
     return
         
 def updateVideoDevice(v):
-    global videoDevice, v4l2ucp
+    global videoDevice
     videoDevice = v
     closev4l2ucp()
     initCaptureDevice()
@@ -87,8 +87,8 @@ def updateVideoDevice(v):
     return
     
 def openv4l2ucp():
-    global videoDevice, v4l2ucp  
-    v4l2ucp = subprocess.Popen(['v4l2ucp','/dev/video'+str(videoDevice)])
+    global videodevices, videoDevice, v4l2ucp  
+    v4l2ucp = subprocess.Popen(['v4l2ucp',videodevices[videoDevice]])
     return
 
 def closev4l2ucp():
@@ -117,8 +117,22 @@ def updateGame(v):
 bot_pattern = re.compile('^(\d{2})$')
 arena_pattern = re.compile('^C(\d)$')
 
+#Get lists of devices
+video_pattern = re.compile('^video(\d)$')
+btserial_pattern = re.compile('^rfcomm(\d)$')
+videodevices = []
+btserialdevices = []
+for dev in os.listdir('/dev/'):
+    match = video_pattern.match(dev)
+    if match:
+        videodevices.append('/dev/'+dev)
+    match = btserial_pattern.match(dev)
+    if match:
+        btserialdevices.append('/dev/'+dev)
+videodevices.sort()  
+btserialdevices.sort()  
+
 videoDevice = 0
-maxVideoDevice = 1
 resolutionindex = 0
 resolutions = [(640,480),(1280,720),(1920,1080)]
 cap = -1
@@ -143,15 +157,14 @@ colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217), (127,1
 arenaSize = (70.5, 46.5) #Arena size in inches
 threshold = 150
 
-
 #DataMatrix  
 dm_max = maxBots + 4; #four corners plus the bots
 dm_timeout = 200
 dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
 
 #Control Panel
-cv2.createTrackbar('Video Device','ControlPanel',videoDevice,maxVideoDevice,updateVideoDevice)
-cv2.createTrackbar('Resolution','ControlPanel',resolutionindex,2,updateResolution)
+cv2.createTrackbar('Video Device','ControlPanel',videoDevice,len(videodevices),updateVideoDevice)
+cv2.createTrackbar('Resolution','ControlPanel',resolutionindex,len(resolutions),updateResolution)
 cv2.createTrackbar('Bots','ControlPanel',maxBots,4,updateMaxBots,)
 cv2.createTrackbar('Scan (ms)','ControlPanel',dm_timeout,1000,updateTimeout)
 cv2.createTrackbar('Display Mode','ControlPanel',displayMode,3,updateDisplayMode)
@@ -164,7 +177,9 @@ botLocAbs = [(0,0), (0,0), (0,0), (0,0)]
 botLocArena = [(0,0), (0,0), (0,0), (0,0)]
 botHeading = [0, 0, 0, 0]
 botAlive = [False, False, False, False]
-botTime = [time.time(), time.time(), time.time(), time.time()]
+botTime = [time.time(), time.time(), time.time(), time.time()]    
+        
+print "Hold 'Esc' to exit from either the ControlPanel or ArenaScanner windows."
 
 ###############
 ## LOOP
@@ -286,7 +301,7 @@ while True:
         cv2.line(outputImg, pt0, pt1, color, 2)
 
     #Display video device and resolution
-    output = "/dev/video"+str(videoDevice);
+    output = videodevices[videoDevice];
     output += " "+str(resolutions[resolutionindex][0])+"x"+str(resolutions[resolutionindex][1])
     cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
     cppt = (cppt[0],cppt[1]+cplh)
