@@ -80,7 +80,6 @@ def onMouse(event,x,y,flags,param):
                 dm_max = Arena.numbots + Arena.numpoi
                 dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
         
-            
             else:    
                 videoDevice_pattern = re.compile('^videoDevice(\d)$')
                 match = videoDevice_pattern.match(menurows[rowClicked])
@@ -271,7 +270,8 @@ while True:
     cppt = (cppt[0],cppt[1]+cplh)
     
     for z in Arena.zone:
-        output = str(z.id)+": "+z.videodevices[z.vdi]
+        output = str(z.id)+": "
+        output += z.videodevices[z.vdi] if z.vdi > -1 else "Off"
         output += " "+str(z.resolutions[z.ri][0])+"x"+str(z.resolutions[z.ri][1])
         cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
         menurows.append("videoDevice"+str(z.id))

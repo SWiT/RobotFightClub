@@ -36,7 +36,7 @@ class Arena:
         self.zone = []
         
         for idx in range(0,self.numzones):
-            z = Zone(idx, self.numpoi, self.videodevices)
+            z = Zone(idx, self.numzones, self.numpoi, self.videodevices)
             self.zone.append(z)
             
     def updateNumberOfZones(self):
@@ -57,11 +57,11 @@ class Arena:
         return
         
 class Zone:
-    
-    
-    def __init__(self, idx, npoi, videodevices):
+    used_vdi = []
+    def __init__(self, idx, nzones, npoi, videodevices):
         self.id = idx
         self.vdi = idx
+        self.used_vdi.append(idx)
         self.videodevices = videodevices
         self.actualsize = (70.5, 46.5) #zone size in inches
         self.poisymbol = [-1,-1,-1,-1]
@@ -73,23 +73,27 @@ class Zone:
         self.cap = -1        #capture device object (OpenCV)
         self.resolutions = [(640,480),(1280,720),(1920,1080)]
         self.ri = 0          #selected Resolution Index
-        
-        self.calcPOISymbols(idx, npoi)
-        self.initCaptureDevice()
-        return
-        
-    def calcPOISymbols(self, idx, npoi):
         self.poisymbol[0] = idx
         self.poisymbol[1] = idx + 1
         self.poisymbol[2] = npoi - idx - 2
         self.poisymbol[3] = npoi - idx - 1
+        self.initCaptureDevice()
         return
         
     def updateVideoDevice(self):
+        if self.vdi != -1:
+            self.used_vdi.remove(self.vdi)
+            
         self.vdi += 1
         if self.vdi >= len(self.videodevices):
-            self.vdi = 0
-        self.initCaptureDevice()
+            self.vdi = -1
+            
+        if self.vdi != -1:
+            if self.vdi in self.used_vdi:
+                self.updateVideoDevice()
+                return
+            self.used_vdi.append(self.vdi)
+            self.initCaptureDevice()
         return
         
     def openv4l2ucp(self):
@@ -104,9 +108,10 @@ class Zone:
              
     def initCaptureDevice(self):
         self.close()
-        self.cap = cv2.VideoCapture(self.vdi)
-        self.cap.set(CV_CAP_PROP_FRAME_WIDTH, self.resolutions[self.ri][0])
-        self.cap.set(CV_CAP_PROP_FRAME_HEIGHT, self.resolutions[self.ri][1])
+        if self.vdi != -1:
+            self.cap = cv2.VideoCapture(self.vdi)
+            self.cap.set(CV_CAP_PROP_FRAME_WIDTH, self.resolutions[self.ri][0])
+            self.cap.set(CV_CAP_PROP_FRAME_HEIGHT, self.resolutions[self.ri][1])
         return
         
     def close(self):
