@@ -66,12 +66,10 @@ def onMouse(event,x,y,flags,param):
     #print cv2.EVENT_LBUTTONDBLCLK, cv2.EVENT_RBUTTONDBLCLK, cv2.EVENT_MBUTTONDBLCLK
     global cplh, menurows, exit
     if event == cv2.EVENT_LBUTTONUP and flags == 1:
-        #print event,x,y,flags,param
         rowClicked = y/cplh
-        #print rowClicked
         if rowClicked < len(menurows):
-            if menurows[rowClicked] == "activeVideoDevices":
-                Arena.updateActiveVideoDevices()
+            if menurows[rowClicked] == "zones":
+                Arena.updateNumberOfZones()
                 
             elif menurows[rowClicked] == "exit":
                 exit = True
@@ -90,7 +88,7 @@ def onMouse(event,x,y,flags,param):
 Arena = arena.Arena()
 
 #Control Panel
-cph = 320 #control panel height
+cph = 640 #control panel height
 cpw = 350 #control panel width
 cplh = 20 #control panel line height
 cppt = (0,cplh) #control panel current text output position    
@@ -131,9 +129,13 @@ exit = False
 while True:
     for z in Arena.zone:
         #get the next frame from the zones capture device
+        if z.cap == -1:
+            continue
+            
         success, origImg = z.cap.read()
         if not success:
             print("Error reading from camera: "+str(z.vdi));
+            exit = true
             break;
 
         #Apply image transformations
@@ -246,10 +248,10 @@ while True:
     cppt = (0,20) #current text position  
     menurows = []
         
-    #Display video device and resolution
-    output = "Video Devices: "+str(Arena.avd)
+    #Display Zones, video devices, and resolutions
+    output = "Zones: "+str(Arena.numzones)
     cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
-    menurows.append("activeVideoDevices")
+    menurows.append("zones")
     cppt = (cppt[0],cppt[1]+cplh)
     
     #for idx in range(0, Arena.avd):
@@ -333,8 +335,7 @@ while True:
 ## END LOOP
 ###############
 for z in Arena.zone:
-    z.cap.release()
-    z.closev4l2ucp()
+    z.close()
 cv2.destroyAllWindows()
 
 print "Exiting."

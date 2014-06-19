@@ -3,11 +3,11 @@ CV_CAP_PROP_FRAME_WIDTH = 3
 CV_CAP_PROP_FRAME_HEIGHT = 4
 
 class Arena:    
-    numpoi = 4  #number of POI
-    numbots = 1 #number of bots
-    x = 0       #maximum X value
-    y = 0       #maximum Y value
-    avd = 1     #the number of Active Video Devices
+    numzones = 1    #number of Zones
+    numpoi = 4      #number of POI
+    numbots = 1     #number of bots
+    x = 0           #maximum X value
+    y = 0           #maximum Y value
     zone = []
     gameOn = False
     videodevices = []
@@ -27,15 +27,21 @@ class Arena:
                 self.btserialdevices.append('/dev/'+dev)     
         self.videodevices.sort()  
         self.btserialdevices.sort()
+        self.buildZones()
     
-        noz = (self.numpoi-2)/2 #number of Zones
-        for idx in range(0,noz):
+    def buildZones(self):
+        self.numpoi = (self.numzones * 2) + 2 #number of poi
+        for z in self.zone:
+            z.close()
+        self.zone = []
+        for idx in range(0,self.numzones):
             self.zone.append(Zone(idx, self.numpoi, self.videodevices))
             
-    def updateActiveVideoDevices(self):
-        self.avd += 1
-        if self.avd > len(self.videodevices):
-            self.avd = 1
+    def updateNumberOfZones(self):
+        self.numzones += 1
+        if self.numzones > len(self.videodevices):
+            self.numzones = 1
+        self.buildZones()
         return
         
     def toggleGame(self):
@@ -58,6 +64,7 @@ class Zone:
     
     def __init__(self, idx, npoi, videodevices):
         self.id = idx
+        self.vdi = idx
         self.videodevices = videodevices
         #determine POI symbols
         self.poisymbol[0] = idx
@@ -87,10 +94,17 @@ class Zone:
         return
              
     def initCaptureDevice(self):
-        if self.cap != -1: self.cap.release()
+        self.close()
         self.cap = cv2.VideoCapture(self.vdi)
         self.cap.set(CV_CAP_PROP_FRAME_WIDTH, self.resolutions[self.ri][0])
         self.cap.set(CV_CAP_PROP_FRAME_HEIGHT, self.resolutions[self.ri][1])
+        return
+        
+    def close(self):
+        if self.cap != -1: 
+            self.cap.release()
+            self.cap = -1
+        self.closev4l2ucp()
         return
             
     def updateResolution(v):
