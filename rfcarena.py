@@ -34,17 +34,12 @@ def updateTimeout(v):
     dm_timeout = v
     dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
     return
-
-def updateMaxBots(v):
-    global maxBots, dm_max, dm_read
-    maxBots = v
-    dm_max = maxBots + 4
-    dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
-    return
     
-def updateDisplayMode(v):
+def updateDisplayMode():
     global displayMode
-    displayMode = v
+    displayMode += 1
+    if displayMode > 3:
+        displayMode = 0
     return
 
 def updateThreshold(v):
@@ -64,7 +59,7 @@ def onMouse(event,x,y,flags,param):
     #print cv2.EVENT_LBUTTONDOWN, cv2.EVENT_RBUTTONDOWN, cv2.EVENT_MBUTTONDOWN
     #print cv2.EVENT_LBUTTONUP, cv2.EVENT_RBUTTONUP, cv2.EVENT_MBUTTONUP
     #print cv2.EVENT_LBUTTONDBLCLK, cv2.EVENT_RBUTTONDBLCLK, cv2.EVENT_MBUTTONDBLCLK
-    global cplh, menurows, exit
+    global cplh, menurows, exit, dm_max, dm_read, dm_timeout
     if event == cv2.EVENT_LBUTTONUP and flags == 1:
         rowClicked = y/cplh
         if rowClicked < len(menurows):
@@ -74,11 +69,32 @@ def onMouse(event,x,y,flags,param):
             elif menurows[rowClicked] == "exit":
                 exit = True
                 
-            videoDevice_pattern = re.compile('^videoDevice(\d)$')
-            match = videoDevice_pattern.match(menurows[rowClicked])
-            if match:
-                print int(match.group(1))
-    
+            elif menurows[rowClicked] == "gameon":
+                Arena.toggleGameOn()
+                
+            elif menurows[rowClicked] == "displaymode":
+                updateDisplayMode()
+                
+            elif menurows[rowClicked] == "numbots":
+                Arena.updateNumBots()
+                dm_max = Arena.numbots + Arena.numpoi
+                dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
+        
+            
+            else:    
+                videoDevice_pattern = re.compile('^videoDevice(\d)$')
+                match = videoDevice_pattern.match(menurows[rowClicked])
+                if match:
+                    zidx = int(match.group(1))
+                    if x <= 26:
+                        if Arena.zone[zidx].v4l2ucp != -1:
+                            Arena.zone[zidx].closev4l2ucp()
+                        else:
+                            Arena.zone[zidx].openv4l2ucp()
+                    elif x <= 185:
+                        Arena.zone[zidx].updateVideoDevice()
+                    else:
+                        Arena.zone[zidx].updateResolution()
     return
 
 ###############
@@ -135,7 +151,7 @@ while True:
         success, origImg = z.cap.read()
         if not success:
             print("Error reading from camera: "+str(z.vdi));
-            exit = true
+            exit = True
             break;
 
         #Apply image transformations
@@ -162,7 +178,7 @@ while True:
             match = poi_pattern.match(symbol[0])
             if match:
                 sval = int(match.group(1))
-                for idx,poival in z.poisymbol:
+                for idx,poival in enumerate(z.poisymbol):
                     if sval == poival:
                         z.poi[idx] = symbol[1][idx]
                         z.poitime[idx] = time.time()
@@ -254,7 +270,6 @@ while True:
     menurows.append("zones")
     cppt = (cppt[0],cppt[1]+cplh)
     
-    #for idx in range(0, Arena.avd):
     for z in Arena.zone:
         output = str(z.id)+": "+z.videodevices[z.vdi]
         output += " "+str(z.resolutions[z.ri][0])+"x"+str(z.resolutions[z.ri][1])
@@ -275,13 +290,19 @@ while True:
     elif displayMode == 3: #display the only the bots point of view
         displayModeLabel += "Bot POV"
     cv2.putText(controlPanelImg, displayModeLabel, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
-    menurows.append("displayMode")
+    menurows.append("displaymode")
     cppt = (cppt[0],cppt[1]+cplh)
     
     #Game Status
-    status = "Game: On" if Arena.gameOn else "Game: Off"
+    status = "Game: On" if Arena.gameon else "Game: Off"
     cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
-    menurows.append("gameOn")
+    menurows.append("gameon")
+    cppt = (cppt[0],cppt[1]+cplh)
+    
+    #Number of Bots
+    status = "Bots: " +str(Arena.numbots)
+    cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    menurows.append("numbots")
     cppt = (cppt[0],cppt[1]+cplh)
      
     menuSpacer()
@@ -289,7 +310,7 @@ while True:
     #Draw Zone POI statuses
     for z in Arena.zone:
         for idx in range(0,4):
-            status = "C"+str(z.poisymbol[idx])+":"
+            status = "Z"+str(z.id)+" C"+str(z.poisymbol[idx])+":"
             status += ' '+str(int(round((time.time()-z.poitime[idx])*1000,0)))
             cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
             menurows.append("z"+str(z.id)+"c"+str(idx))

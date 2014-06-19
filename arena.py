@@ -9,7 +9,7 @@ class Arena:
     x = 0           #maximum X value
     y = 0           #maximum Y value
     zone = []
-    gameOn = False
+    gameon = False
     videodevices = []
     btserialdevices = []
     corners = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
@@ -34,8 +34,10 @@ class Arena:
         for z in self.zone:
             z.close()
         self.zone = []
+        
         for idx in range(0,self.numzones):
-            self.zone.append(Zone(idx, self.numpoi, self.videodevices))
+            z = Zone(idx, self.numpoi, self.videodevices)
+            self.zone.append(z)
             
     def updateNumberOfZones(self):
         self.numzones += 1
@@ -43,44 +45,51 @@ class Arena:
             self.numzones = 1
         self.buildZones()
         return
-        
-    def toggleGame(self):
-        self.gameOn = False if self.gameOn else True
+    
+    def updateNumBots(self):
+        self.numbots += 1
+        if self.numbots > 4:
+            self.numbots = 0
+        return
+    
+    def toggleGameOn(self):
+        self.gameon = False if self.gameon else True
         return
         
 class Zone:
-    actualsize = (70.5, 46.5) #zone size in inches
-    poisymbol = [-1,-1,-1,-1]
-    poi = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
-    poitime = [time.time(), time.time(), time.time(), time.time()] 
-    xoffset = 0
-    yoffset = 0 
-    vdi = -1        #selected Video Device Index
-    v4l2ucp = -1
-    videodevices = []
-    cap = -1        #capture device object (OpenCV)
-    resolutions = [(640,480),(1280,720),(1920,1080)]
-    ri = 0          #selected Resolution Index
+    
     
     def __init__(self, idx, npoi, videodevices):
         self.id = idx
         self.vdi = idx
         self.videodevices = videodevices
-        #determine POI symbols
+        self.actualsize = (70.5, 46.5) #zone size in inches
+        self.poisymbol = [-1,-1,-1,-1]
+        self.poi = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
+        self.poitime = [time.time(), time.time(), time.time(), time.time()] 
+        self.xoffset = 0
+        self.yoffset = 0 
+        self.v4l2ucp = -1
+        self.cap = -1        #capture device object (OpenCV)
+        self.resolutions = [(640,480),(1280,720),(1920,1080)]
+        self.ri = 0          #selected Resolution Index
+        
+        self.calcPOISymbols(idx, npoi)
+        self.initCaptureDevice()
+        return
+        
+    def calcPOISymbols(self, idx, npoi):
         self.poisymbol[0] = idx
         self.poisymbol[1] = idx + 1
         self.poisymbol[2] = npoi - idx - 2
         self.poisymbol[3] = npoi - idx - 1
-        self.initCaptureDevice()
         return
         
     def updateVideoDevice(self):
         self.vdi += 1
         if self.vdi >= len(self.videodevices):
             self.vdi = 0
-        #self.closev4l2ucp()
         self.initCaptureDevice()
-        #self.openv4l2ucp()
         return
         
     def openv4l2ucp(self):
@@ -107,14 +116,12 @@ class Zone:
         self.closev4l2ucp()
         return
             
-    def updateResolution(v):
+    def updateResolution(self):
         self.ri += 1
         if self.ri >= len(self.resolutions):
             self.ri = 0
         x = self.resolutions[self.ri][0]
         y = self.resolutions[self.ri][1]
-        #closev4l2ucp()
-        initCaptureDevice()
-        #openv4l2ucp()
+        self.initCaptureDevice()
         self.poi = [(0,y),(x,y),(x,0),(0,0)]
         return
