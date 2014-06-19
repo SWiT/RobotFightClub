@@ -1,12 +1,7 @@
-import cv2
-CV_CAP_PROP_FRAME_WIDTH = 3
-CV_CAP_PROP_FRAME_HEIGHT = 4
-import serial
-import sys, math, time, subprocess, os
+import cv2, serial, sys, math, time, subprocess, os, re, Image
 from numpy import *
-import re
-import Image
 from pydmtx import DataMatrix
+import arena
 
 ###############
 ## FUNCTIONS
@@ -17,15 +12,11 @@ def dist(p0, p1):
 def findCenter(pts):
     x = 0
     y = 0
-    for i in range(0,4):
+    l = len(pts)
+    for i in range(0,l):
         x += pts[i][0]
         y += pts[i][1]
-    return (int(x/4), int(y/4))
-
-def findMidPt(pt0, pt1):
-    x = int((pt0[0]+pt1[0])/2)
-    y = int((pt0[1]+pt1[1])/2)
-    return (x,y)
+    return (int(x/l), int(y/l))
 
 def findDiffs(pt0, pt1):
     x = pt1[0]-pt0[0]
@@ -38,13 +29,6 @@ def drawBorder(img, symbol, color, thickness):
     cv2.line(img, symbol[2], symbol[3], color, thickness)
     cv2.line(img, symbol[3], symbol[0], color, thickness)
             
-def arenaReady():
-    ready = True
-    for corner in arenaCorners:
-        if corner[0]==0 and corner[1]==0:
-            ready = False
-    return ready
-
 def updateTimeout(v):
     global dm_timeout, dm_read
     dm_timeout = v
@@ -57,7 +41,7 @@ def updateMaxBots(v):
     dm_max = maxBots + 4
     dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
     return
-
+    
 def updateDisplayMode(v):
     global displayMode
     displayMode = v
@@ -67,245 +51,217 @@ def updateThreshold(v):
     global threshold
     threshold = v
     return
-    
-def initCaptureDevice():
-    global videoDevice, cap, maxX, maxY, resolutions, resolutionindex
-    if cap != -1: cap.release()
-    cap = cv2.VideoCapture(videoDevice)
-    maxX = resolutions[resolutionindex][0]
-    maxY = resolutions[resolutionindex][1]
-    cap.set(CV_CAP_PROP_FRAME_WIDTH, maxX)
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT, maxY)
-    return
-        
-def updateVideoDevice(v):
-    global videoDevice
-    videoDevice = v
-    closev4l2ucp()
-    initCaptureDevice()
-    openv4l2ucp()
-    return
-    
-def openv4l2ucp():
-    global videodevices, videoDevice, v4l2ucp  
-    v4l2ucp = subprocess.Popen(['v4l2ucp',videodevices[videoDevice]])
-    return
 
-def closev4l2ucp():
-    global v4l2ucp  
-    if v4l2ucp != -1:
-        v4l2ucp.kill()
-    return
-        
-def updateResolution(v):
-    global resolutionindex, arenaCorners
-    resolutionindex = v
-    closev4l2ucp()
-    initCaptureDevice()
-    openv4l2ucp()
-    arenaCorners = [(0,maxY),(maxX,maxY),(maxX,0),(0,0)]
-    return
 
-def updateGame(v):
-    global gameOn
-    gameOn = True if v==1 else False
+
+#Insert an empty row into the ArenaControlPanel menu    
+def menuSpacer():
+    global menurows, cppt, cplh
+    menurows.append("space")
+    cppt = (cppt[0],cppt[1]+cplh)
+    
+def onMouse(event,x,y,flags,param):
+    #print cv2.EVENT_LBUTTONDOWN, cv2.EVENT_RBUTTONDOWN, cv2.EVENT_MBUTTONDOWN
+    #print cv2.EVENT_LBUTTONUP, cv2.EVENT_RBUTTONUP, cv2.EVENT_MBUTTONUP
+    #print cv2.EVENT_LBUTTONDBLCLK, cv2.EVENT_RBUTTONDBLCLK, cv2.EVENT_MBUTTONDBLCLK
+    global cplh, menurows, exit
+    if event == cv2.EVENT_LBUTTONUP and flags == 1:
+        #print event,x,y,flags,param
+        rowClicked = y/cplh
+        #print rowClicked
+        if rowClicked < len(menurows):
+            if menurows[rowClicked] == "activeVideoDevices":
+                Arena.updateActiveVideoDevices()
+                
+            elif menurows[rowClicked] == "exit":
+                exit = True
+                
+            videoDevice_pattern = re.compile('^videoDevice(\d)$')
+            match = videoDevice_pattern.match(menurows[rowClicked])
+            if match:
+                print int(match.group(1))
+    
     return
 
 ###############
 ## SETUP
 ###############
-bot_pattern = re.compile('^(\d{2})$')
-arena_pattern = re.compile('^C(\d)$')
 
-#Get lists of devices
-video_pattern = re.compile('^video(\d)$')
-btserial_pattern = re.compile('^rfcomm(\d)$')
-videodevices = []
-btserialdevices = []
-for dev in os.listdir('/dev/'):
-    match = video_pattern.match(dev)
-    if match:
-        videodevices.append('/dev/'+dev)
-    match = btserial_pattern.match(dev)
-    if match:
-        btserialdevices.append('/dev/'+dev)
-videodevices.sort()  
-btserialdevices.sort()  
+Arena = arena.Arena()
 
-videoDevice = 0
-resolutionindex = 0
-resolutions = [(640,480),(1280,720),(1920,1080)]
-cap = -1
-v4l2ucp = -1
-initCaptureDevice()
-openv4l2ucp()
-
-cph = 240 #control panel height
-cpw = 320 #control panel width
-cplh = 20 #line height
-cppt = (0,20) #current text position    
+#Control Panel
+cph = 320 #control panel height
+cpw = 350 #control panel width
+cplh = 20 #control panel line height
+cppt = (0,cplh) #control panel current text output position    
 
 cv2.namedWindow("ArenaScanner")
-cv2.namedWindow("ControlPanel")
-
+cv2.namedWindow("ArenaControlPanel")
 cv2.startWindowThread()
 
-gameOn = False
 displayMode = 1
-maxBots = 1
 colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217), (127,127,127)) #Blue, Green, Red, Yellow, Purple, Gray
-arenaSize = (70.5, 46.5) #Arena size in inches
 threshold = 150
 
 #DataMatrix  
-dm_max = maxBots + 4; #four corners plus the bots
+dm_max = Arena.numbots + Arena.numpoi; #points of interest plus the bots
 dm_timeout = 200
 dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
 
 #Control Panel
-cv2.createTrackbar('Video Device','ControlPanel',videoDevice,len(videodevices),updateVideoDevice)
-cv2.createTrackbar('Resolution','ControlPanel',resolutionindex,len(resolutions),updateResolution)
-cv2.createTrackbar('Bots','ControlPanel',maxBots,4,updateMaxBots,)
-cv2.createTrackbar('Scan (ms)','ControlPanel',dm_timeout,1000,updateTimeout)
-cv2.createTrackbar('Display Mode','ControlPanel',displayMode,3,updateDisplayMode)
-cv2.createTrackbar('Threshold','ControlPanel',threshold,255,updateThreshold)
-cv2.createTrackbar('Game Off/On','ControlPanel',0,1,updateGame)
-
-arenaCorners = [(0,maxY),(maxX,maxY),(maxX,0),(0,0)]
+cv2.createTrackbar('Scan (ms)', 'ArenaControlPanel', dm_timeout, 1000, updateTimeout)
+cv2.createTrackbar('Threshold', 'ArenaControlPanel', threshold, 255, updateThreshold)
+ 
+poi_pattern = re.compile('^C(\d)$')
 
 botLocAbs = [(0,0), (0,0), (0,0), (0,0)]
 botLocArena = [(0,0), (0,0), (0,0), (0,0)]
 botHeading = [0, 0, 0, 0]
 botAlive = [False, False, False, False]
 botTime = [time.time(), time.time(), time.time(), time.time()]    
-        
-print "Hold 'Esc' to exit from either the ControlPanel or ArenaScanner windows."
+bot_pattern = re.compile('^(\d{2})$')
+
+cv2.setMouseCallback("ArenaControlPanel", onMouse)
+          
+exit = False
 
 ###############
 ## LOOP
 ###############
 while True:
-    #get next frame from capture device
-    success, origImg = cap.read()
-    if not success:
-        print("Error reading from camera.");
-        break;
+    for z in Arena.zone:
+        #get the next frame from the zones capture device
+        success, origImg = z.cap.read()
+        if not success:
+            print("Error reading from camera: "+str(z.vdi));
+            break;
 
+        #Apply image transformations
+        grayImg = cv2.cvtColor(origImg, cv2.COLOR_BGR2GRAY) #convert to grayscale
+        ret,threshImg = cv2.threshold(grayImg, threshold, 255, cv2.THRESH_BINARY)
+        width = size(origImg, 1)
+        height = size(origImg, 0)
+        if displayMode >= 2:
+            outputImg = zeros((height, width, 3), uint8) #create a blank image
+        elif displayMode == 0:
+            outputImg = cv2.cvtColor(threshImg, cv2.COLOR_GRAY2BGR)
+        else:
+            outputImg = origImg;
+    
+
+        #Scan for DataMatrix
+        dm_read.decode(width, height, buffer(origImg.tostring()))  
+
+        #draw borders on detected symbols and record object locations
+        for dm_idx in range(1, dm_read.count()+1):
+            symbol = dm_read.stats(dm_idx)
+            
+            #Arena POI/Corners
+            match = poi_pattern.match(symbol[0])
+            if match:
+                sval = int(match.group(1))
+                for idx,poival in z.poisymbol:
+                    if sval == poival:
+                        z.poi[idx] = symbol[1][idx]
+                        z.poitime[idx] = time.time()
+                        if displayMode < 3:
+                            drawBorder(outputImg, symbol[1], colorCode[0], 2)
+                            pt = (symbol[1][1][0]-35, symbol[1][1][1]-25)  
+                            cv2.putText(outputImg, str(idx), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[0], 2)
+
+            #Bot Symbol
+            match = bot_pattern.match(symbol[0])
+            if match:
+                pt = findCenter(symbol[1])
+                botId = int(match.group(1))
+                if botId >= Arena.numbots:
+                    continue
+
+                #update botTime
+                botTime[botId] = time.time();
+
+                #update the bots location
+                botLocAbs[botId] = pt
+                wallCenterX = findCenter([Arena.corners[1],Arena.corners[0]])
+                wallCenterY = findCenter([Arena.corners[3],Arena.corners[0]])
+                maxX = Arena.corners[1][0]-Arena.corners[0][0]
+                maxY = Arena.corners[3][1]-Arena.corners[0][1]
+                arenaPtX = int(float(pt[0]-wallCenterY[0])/float(maxX)*z.actualsize[0])
+                arenaPtY = int(float(pt[1]-wallCenterX[1])/float(maxY)*z.actualsize[1])
+                botLocArena[botId] = (arenaPtX, arenaPtY)
+                    
+                #update the bots heading
+                x = symbol[1][3][0] - symbol[1][0][0]
+                y = symbol[1][0][1] - symbol[1][3][1]
+                h = math.degrees(math.atan2(y,x))
+                if h < 0: h = 360 + h
+                botHeading[botId] = int(round(h,0))
+
+                #determine the bot's alive or dead status
+                pt0 = symbol[1][0]
+                pt2 = symbol[1][2]
+                pt3 = symbol[1][3]
+                x = int((pt2[0] - pt3[0])*.33 + pt3[0])
+                y = int((pt2[1] - pt3[1])*.33 + pt3[1])
+                x += int((pt3[0] - pt0[0])*.24)
+                y += int((pt3[1] - pt0[1])*.24)
+                cv2.rectangle(outputImg, (x+5,y+5), (x-5,y-5), colorCode[5])
+                roi = threshImg[y-5:y+6,x-5:x+6]
+                scAvg = cv2.mean(roi)
+                botAlive[botId] = scAvg[0] >= 10
+                
+
+                #draw the borders, heading, and text for bot symbol
+                if displayMode < 3:
+                    drawBorder(outputImg, symbol[1], colorCode[1], 2)                  
+                    pt = (pt[0]-15, pt[1]+10)            
+                    cv2.putText(outputImg, match.group(1), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[1], 2)
+                    ptdiff = findDiffs(symbol[1][1], symbol[1][2])
+                    pt0 = findCenter([symbol[1][2], symbol[1][3]])
+                    pt1 = (pt0[0]+int(ptdiff[0]*1.20), pt0[1]+int(ptdiff[1]*1.20))
+                    cv2.line(outputImg, pt0, pt1, colorCode[1], 2)
+
+        #Draw Objects on Scanner window
+        #Arena
+        drawBorder(outputImg, Arena.corners, colorCode[0], 2)  
+
+        #Last Know Bot Locations
+        for idx,pt in enumerate(botLocAbs):
+            if pt[0] == 0 and pt[1] == 0:
+                continue
+            if botAlive[idx]:
+                color = colorCode[3]
+            else:
+                color = colorCode[2]
+            cv2.circle(outputImg, pt, 30, color, 2)
+            textPt = (pt[0]-8, pt[1]+8)
+            cv2.putText(outputImg, str(idx), textPt, cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
+            ang = botHeading[idx]*(math.pi/180) #convert back to radians
+            pt0 = ((pt[0]+int(math.cos(ang)*30)), (pt[1]-int(math.sin(ang)*30)))
+            pt1 = ((pt[0]+int(math.cos(ang)*30*3.25)), (pt[1]-int(math.sin(ang)*30*3.25)))
+            cv2.line(outputImg, pt0, pt1, color, 2)
+
+    #Draw menu on Control Panel window
     controlPanelImg = zeros((cph,cpw,3), uint8) #create a blank image for the control panel
     cppt = (0,20) #current text position  
-
-    #Apply image transformations
-    grayImg = cv2.cvtColor(origImg, cv2.COLOR_BGR2GRAY) #convert to grayscale
-    ret,threshImg = cv2.threshold(grayImg,threshold,255,cv2.THRESH_BINARY)
-    width = size(origImg, 1)
-    height = size(origImg, 0)
-    if displayMode >= 2:
-        outputImg = zeros((height,width,3), uint8) #create a blank image
-    elif displayMode == 0:
-        outputImg = cv2.cvtColor(threshImg, cv2.COLOR_GRAY2BGR)
-    else:
-        outputImg = origImg;
-    
-
-    #Scan for DataMatrix
-    dm_read.decode(width, height, buffer(origImg.tostring()))  
-
-    #draw borders on detected symbols and record object locations
-    for x in range(1, dm_read.count()+1):
-        symbol = dm_read.stats(x)
+    menurows = []
         
-        #Arena Corners
-        match = arena_pattern.match(symbol[0])
-        if match:
-            c = int(match.group(1))
-            if 0 <= c and c <= 3:
-                arenaCorners[c] = symbol[1][c]
-                if displayMode < 3:
-                    drawBorder(outputImg, symbol[1], colorCode[0], 2)
-                    pt = (symbol[1][1][0]-35, symbol[1][1][1]-25)  
-                    cv2.putText(outputImg, str(c), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[0], 2)
-
-        #Bot Symbol
-        match = bot_pattern.match(symbol[0])
-        if match:
-            pt = findCenter(symbol[1])
-            botId = int(match.group(1))
-            if botId >= maxBots:
-                continue
-
-            #update botTime
-            botTime[botId] = time.time();
-
-            #update the bots location
-            botLocAbs[botId] = pt
-            if arenaReady():            
-                wallCenterX = findMidPt(arenaCorners[1],arenaCorners[0])
-                wallCenterY = findMidPt(arenaCorners[3],arenaCorners[0])
-                maxX = arenaCorners[1][0]-arenaCorners[0][0]
-                maxY = arenaCorners[3][1]-arenaCorners[0][1]
-                arenaPtX = int(float(pt[0]-wallCenterY[0])/float(maxX)*arenaSize[0])
-                arenaPtY = int(float(pt[1]-wallCenterX[1])/float(maxY)*arenaSize[1])
-                botLocArena[botId] = (arenaPtX, arenaPtY)
-                
-            #update the bots heading
-            x = symbol[1][3][0] - symbol[1][0][0]
-            y = symbol[1][0][1] - symbol[1][3][1]
-            h = math.degrees(math.atan2(y,x))
-            if h < 0: h = 360 + h
-            botHeading[botId] = int(round(h,0))
-
-            #determine the bot's alive or dead status
-            pt0 = symbol[1][0]
-            pt2 = symbol[1][2]
-            pt3 = symbol[1][3]
-            x = int((pt2[0] - pt3[0])*.33 + pt3[0])
-            y = int((pt2[1] - pt3[1])*.33 + pt3[1])
-            x += int((pt3[0] - pt0[0])*.24)
-            y += int((pt3[1] - pt0[1])*.24)
-            cv2.rectangle(outputImg, (x+5,y+5), (x-5,y-5), colorCode[5])
-            roi = threshImg[y-5:y+6,x-5:x+6]
-            scAvg = cv2.mean(roi)
-            botAlive[botId] = scAvg[0] >= 10
-            
-
-            #draw the borders, heading, and text for bot symbol
-            if displayMode < 3:
-                drawBorder(outputImg, symbol[1], colorCode[1], 2)                  
-                pt = (pt[0]-15, pt[1]+10)            
-                cv2.putText(outputImg, match.group(1), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[1], 2)
-                ptdiff = findDiffs(symbol[1][1], symbol[1][2])
-                pt0 = findMidPt(symbol[1][2], symbol[1][3])
-                pt1 = (pt0[0]+int(ptdiff[0]*1.20), pt0[1]+int(ptdiff[1]*1.20))
-                cv2.line(outputImg, pt0, pt1, colorCode[1], 2)
-
-
-
-    #Draw Objects
-    #Arena
-    drawBorder(outputImg, arenaCorners, colorCode[0], 2)  
-
-    #Last Know Bot Locations
-    for idx,pt in enumerate(botLocAbs):
-        if pt[0] == 0 and pt[1] == 0:
-            continue
-        if botAlive[idx]:
-            color = colorCode[3]
-        else:
-            color = colorCode[2]
-        cv2.circle(outputImg, pt, 30, color, 2)
-        textPt = (pt[0]-8, pt[1]+8)
-        cv2.putText(outputImg, str(idx), textPt, cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
-        ang = botHeading[idx]*(math.pi/180) #convert back to radians
-        pt0 = ((pt[0]+int(math.cos(ang)*30)), (pt[1]-int(math.sin(ang)*30)))
-        pt1 = ((pt[0]+int(math.cos(ang)*30*3.25)), (pt[1]-int(math.sin(ang)*30*3.25)))
-        cv2.line(outputImg, pt0, pt1, color, 2)
-
     #Display video device and resolution
-    output = videodevices[videoDevice];
-    output += " "+str(resolutions[resolutionindex][0])+"x"+str(resolutions[resolutionindex][1])
+    output = "Video Devices: "+str(Arena.avd)
     cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    menurows.append("activeVideoDevices")
     cppt = (cppt[0],cppt[1]+cplh)
     
+    #for idx in range(0, Arena.avd):
+    for z in Arena.zone:
+        output = str(z.id)+": "+z.videodevices[z.vdi]
+        output += " "+str(z.resolutions[z.ri][0])+"x"+str(z.resolutions[z.ri][1])
+        cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+        menurows.append("videoDevice"+str(z.id))
+        cppt = (cppt[0],cppt[1]+cplh)
+    
+    menuSpacer()
+        
     #Display Mode Labels
     displayModeLabel = "Display Mode: "      
     if displayMode == 0: #display source image
@@ -317,23 +273,46 @@ while True:
     elif displayMode == 3: #display the only the bots point of view
         displayModeLabel += "Bot POV"
     cv2.putText(controlPanelImg, displayModeLabel, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    menurows.append("displayMode")
     cppt = (cppt[0],cppt[1]+cplh)
     
     #Game Status
-    status = "Game: On" if gameOn else "Game: Off"
+    status = "Game: On" if Arena.gameOn else "Game: Off"
     cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    menurows.append("gameOn")
     cppt = (cppt[0],cppt[1]+cplh)
-    
+     
+    menuSpacer()
+        
+    #Draw Zone POI statuses
+    for z in Arena.zone:
+        for idx in range(0,4):
+            status = "C"+str(z.poisymbol[idx])+":"
+            status += ' '+str(int(round((time.time()-z.poitime[idx])*1000,0)))
+            cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+            menurows.append("z"+str(z.id)+"c"+str(idx))
+            cppt = (cppt[0],cppt[1]+cplh)
+        
     #Draw Bot Statuses
-    for idx in range(0,maxBots):
+    for idx in range(0,Arena.numbots):
         status = str(idx)+":"
         status += ' '+str(botLocArena[idx])
         status += ' '+str(botHeading[idx])
         status += ' '+str(int(round((time.time()-botTime[idx])*1000,0)))
         status += ' '+("Alive" if botAlive[idx] else "Dead")
         cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+        menurows.append("bot"+str(idx))
         cppt = (cppt[0],cppt[1]+cplh)
     
+    #Skip a row
+    menurows.append("space")
+    cppt = (cppt[0],cppt[1]+cplh)
+    
+    #Draw Exit
+    cv2.putText(controlPanelImg, "Exit", cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    menurows.append("exit")
+    cppt = (cppt[0],cppt[1]+cplh)
+        
     #crosshair in center
     pt0 = (width/2,height/2-5)
     pt1 = (width/2,height/2+5)
@@ -344,20 +323,20 @@ while True:
 
     #Display the image or frame of video
     cv2.imshow("ArenaScanner", outputImg)
-    cv2.imshow("ControlPanel",controlPanelImg)
+    cv2.imshow("ArenaControlPanel",controlPanelImg)
 
-    #Hold Esc to Exit
-    key = cv2.waitKey(1) & 0xFF        
-    if key == 27:  #esc
-        break #exit
-    
-    
+    #Exit
+    if exit: 
+        break
+      
 ###############
 ## END LOOP
 ###############
-cap.release()
+for z in Arena.zone:
+    z.cap.release()
+    z.closev4l2ucp()
 cv2.destroyAllWindows()
-closev4l2ucp()
+
 print "Exiting."
 
 
