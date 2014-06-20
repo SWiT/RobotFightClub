@@ -61,12 +61,6 @@ class Zone:
     def __init__(self, idx, nzones, npoi, videodevices):
         self.id = idx
         self.vdi = idx
-        try:
-            self.used_vdi.index(idx)
-        except ValueError:
-            self.used_vdi.append(idx)
-            
-        #print self.used_vdi
         self.videodevices = videodevices
         self.actualsize = (70.5, 46.5) #zone size in inches
         self.poisymbol = [-1,-1,-1,-1]
@@ -101,12 +95,10 @@ class Zone:
     def updateVideoDevice(self):
         self.close()
         self.nextAvailableDevice()
-        #print self.vdi
         if self.vdi != -1:
             self.initCaptureDevice()
         else:
             self.close()    
-        #print self.used_vdi
         return
         
     def openV4l2ucp(self):
