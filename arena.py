@@ -28,6 +28,8 @@ class Arena:
         self.videodevices.sort()  
         self.btserialdevices.sort()
         self.buildZones()
+        print self.videodevices
+        print self.btserialdevices
     
     def buildZones(self):
         self.numpoi = (self.numzones * 2) + 2 #number of poi
@@ -76,14 +78,13 @@ class Zone:
         self.poisymbol[1] = idx + 1
         self.poisymbol[2] = npoi - idx - 2
         self.poisymbol[3] = npoi - idx - 1
-        self.initCaptureDevice()
+        self.initVideoDevice()
         return
     
     def nextAvailableDevice(self):
         self.vdi += 1
         if self.vdi >= len(self.videodevices):
             self.vdi = -1
-        
         if self.vdi != -1:
             try:
                 self.used_vdi.index(self.vdi)
@@ -96,7 +97,7 @@ class Zone:
         self.close()
         self.nextAvailableDevice()
         if self.vdi != -1:
-            self.initCaptureDevice()
+            self.initVideoDevice()
         else:
             self.close()    
         return
@@ -111,7 +112,7 @@ class Zone:
             self.v4l2ucp = -1
         return
              
-    def initCaptureDevice(self):
+    def initVideoDevice(self):
         if self.vdi != -1:
             self.cap = cv2.VideoCapture(self.vdi)
             self.cap.set(CV_CAP_PROP_FRAME_WIDTH, self.resolutions[self.ri][0])
@@ -141,6 +142,6 @@ class Zone:
         x = self.resolutions[self.ri][0]
         y = self.resolutions[self.ri][1]
         self.close()
-        self.initCaptureDevice()
+        self.initVideoDevice()
         self.poi = [(0,y),(x,y),(x,0),(0,0)]
         return

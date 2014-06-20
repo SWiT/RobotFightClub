@@ -56,6 +56,7 @@ def menuSpacer():
     cppt = (cppt[0],cppt[1]+cplh)
     
 def onMouse(event,x,y,flags,param):
+    if flags == 1: print event,x,y,flags,param
     #print cv2.EVENT_LBUTTONDOWN, cv2.EVENT_RBUTTONDOWN, cv2.EVENT_MBUTTONDOWN
     #print cv2.EVENT_LBUTTONUP, cv2.EVENT_RBUTTONUP, cv2.EVENT_MBUTTONUP
     #print cv2.EVENT_LBUTTONDBLCLK, cv2.EVENT_RBUTTONDBLCLK, cv2.EVENT_MBUTTONDBLCLK
@@ -85,15 +86,17 @@ def onMouse(event,x,y,flags,param):
                 match = videoDevice_pattern.match(menurows[rowClicked])
                 if match:
                     zidx = int(match.group(1))
-                    if x <= 26:
+                    if x <= 28:
+                        print "SELECT THIS"
+                    elif x <= 125:
+                        Arena.zone[zidx].updateVideoDevice()
+                    elif x <= 275:
+                        Arena.zone[zidx].updateResolution()
+                    else:
                         if Arena.zone[zidx].v4l2ucp != -1:
                             Arena.zone[zidx].closeV4l2ucp()
                         else:
                             Arena.zone[zidx].openV4l2ucp()
-                    elif x <= 185:
-                        Arena.zone[zidx].updateVideoDevice()
-                    else:
-                        Arena.zone[zidx].updateResolution()
     return
 
 ###############
@@ -165,6 +168,13 @@ while True:
         else:
             outputImg = origImg;
     
+        #crosshair in center
+        pt0 = (width/2,height/2-5)
+        pt1 = (width/2,height/2+5)
+        cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
+        pt0 = (width/2-5,height/2)
+        pt1 = (width/2+5,height/2)
+        cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
 
         #Scan for DataMatrix
         dm_read.decode(width, height, buffer(origImg.tostring()))  
@@ -262,20 +272,24 @@ while True:
     #Draw menu on Control Panel window
     controlPanelImg = zeros((cph,cpw,3), uint8) #create a blank image for the control panel
     cppt = (0,20) #current text position  
+    menutextcolor = (255,255,255)
     menurows = []
         
     #Display Zones, video devices, and resolutions
     output = "Zones: "+str(Arena.numzones)
-    cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     menurows.append("zones")
     cppt = (cppt[0],cppt[1]+cplh)
     
     for z in Arena.zone:
         output = str(z.id)+": "
-        output += z.videodevices[z.vdi][5:] if z.vdi > -1 else "Off"
-        cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+        cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
+        output = z.videodevices[z.vdi][5:] if z.vdi > -1 else "Off"
+        cv2.putText(controlPanelImg, output, (cppt[0]+28,cppt[1]), cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
         output = str(z.resolutions[z.ri][0])+"x"+str(z.resolutions[z.ri][1])
-        cv2.putText(controlPanelImg, output, (cppt[0]+190,cppt[1]), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+        cv2.putText(controlPanelImg, output, (cppt[0]+125,cppt[1]), cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
+        output = "settings"
+        cv2.putText(controlPanelImg, output, (cppt[0]+270,cppt[1]), cv2.FONT_HERSHEY_PLAIN, 1.0, menutextcolor, 1)
         menurows.append("videoDevice"+str(z.id))
         cppt = (cppt[0],cppt[1]+cplh)
     
@@ -291,19 +305,19 @@ while True:
         displayModeLabel += "Data Only"
     elif displayMode == 3: #display the only the bots point of view
         displayModeLabel += "Bot POV"
-    cv2.putText(controlPanelImg, displayModeLabel, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    cv2.putText(controlPanelImg, displayModeLabel, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     menurows.append("displaymode")
     cppt = (cppt[0],cppt[1]+cplh)
     
     #Game Status
     status = "Game: On" if Arena.gameon else "Game: Off"
-    cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     menurows.append("gameon")
     cppt = (cppt[0],cppt[1]+cplh)
     
     #Number of Bots
     status = "Bots: " +str(Arena.numbots)
-    cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     menurows.append("numbots")
     cppt = (cppt[0],cppt[1]+cplh)
      
@@ -314,7 +328,7 @@ while True:
         for idx in range(0,4):
             status = "Z"+str(z.id)+" C"+str(z.poisymbol[idx])+":"
             status += ' '+str(int(round((time.time()-z.poitime[idx])*1000,0)))
-            cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+            cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
             menurows.append("z"+str(z.id)+"c"+str(idx))
             cppt = (cppt[0],cppt[1]+cplh)
         
@@ -325,7 +339,7 @@ while True:
         status += ' '+str(botHeading[idx])
         status += ' '+str(int(round((time.time()-botTime[idx])*1000,0)))
         status += ' '+("Alive" if botAlive[idx] else "Dead")
-        cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+        cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
         menurows.append("bot"+str(idx))
         cppt = (cppt[0],cppt[1]+cplh)
     
@@ -334,21 +348,14 @@ while True:
     cppt = (cppt[0],cppt[1]+cplh)
     
     #Draw Exit
-    cv2.putText(controlPanelImg, "Exit", cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+    cv2.putText(controlPanelImg, "Exit", cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     menurows.append("exit")
     cppt = (cppt[0],cppt[1]+cplh)
         
-    #crosshair in center
-    pt0 = (width/2,height/2-5)
-    pt1 = (width/2,height/2+5)
-    cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
-    pt0 = (width/2-5,height/2)
-    pt1 = (width/2+5,height/2)
-    cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
-
+    
     #Display the image or frame of video
     cv2.imshow("ArenaScanner", outputImg)
-    cv2.imshow("ArenaControlPanel",controlPanelImg)
+    cv2.imshow("ArenaControlPanel", controlPanelImg)
 
     #Exit
     if exit: 
