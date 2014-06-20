@@ -33,8 +33,8 @@ class Arena:
         self.numpoi = (self.numzones * 2) + 2 #number of poi
         for z in self.zone:
             z.close()
+            z.used_vdi = []
         self.zone = []
-        
         for idx in range(0,self.numzones):
             z = Zone(idx, self.numzones, self.numpoi, self.videodevices)
             self.zone.append(z)
@@ -61,7 +61,12 @@ class Zone:
     def __init__(self, idx, nzones, npoi, videodevices):
         self.id = idx
         self.vdi = idx
-        self.used_vdi.append(idx)
+        try:
+            self.used_vdi.index(idx)
+        except ValueError:
+            self.used_vdi.append(idx)
+            
+        #print self.used_vdi
         self.videodevices = videodevices
         self.actualsize = (70.5, 46.5) #zone size in inches
         self.poisymbol = [-1,-1,-1,-1]
@@ -79,54 +84,71 @@ class Zone:
         self.poisymbol[3] = npoi - idx - 1
         self.initCaptureDevice()
         return
-        
-    def updateVideoDevice(self):
-        if self.vdi != -1:
-            self.used_vdi.remove(self.vdi)
-            
+    
+    def nextAvailableDevice(self):
         self.vdi += 1
         if self.vdi >= len(self.videodevices):
             self.vdi = -1
-            
+        
         if self.vdi != -1:
-            if self.vdi in self.used_vdi:
-                self.updateVideoDevice()
+            try:
+                self.used_vdi.index(self.vdi)
+            except ValueError:
                 return
-            self.used_vdi.append(self.vdi)
-            self.initCaptureDevice()
+            self.nextAvailableDevice()
         return
         
-    def openv4l2ucp(self):
+    def updateVideoDevice(self):
+        self.close()
+        self.nextAvailableDevice()
+        #print self.vdi
+        if self.vdi != -1:
+            self.initCaptureDevice()
+        else:
+            self.close()    
+        #print self.used_vdi
+        return
+        
+    def openV4l2ucp(self):
         self.v4l2ucp = subprocess.Popen(['v4l2ucp',self.videodevices[self.vdi]])
         return
 
-    def closev4l2ucp(self):
+    def closeV4l2ucp(self):
         if self.v4l2ucp != -1:
             self.v4l2ucp.kill()
             self.v4l2ucp = -1
         return
              
     def initCaptureDevice(self):
-        self.close()
         if self.vdi != -1:
             self.cap = cv2.VideoCapture(self.vdi)
             self.cap.set(CV_CAP_PROP_FRAME_WIDTH, self.resolutions[self.ri][0])
             self.cap.set(CV_CAP_PROP_FRAME_HEIGHT, self.resolutions[self.ri][1])
+            self.used_vdi.append(self.vdi)          
         return
         
     def close(self):
+        self.closeV4l2ucp()
+        self.closeCap()
+        try:
+            self.used_vdi.remove(self.vdi)
+        except ValueError:
+            pass
+        return
+    
+    def closeCap(self):
         if self.cap != -1: 
             self.cap.release()
             self.cap = -1
-        self.closev4l2ucp()
         return
-            
+        
     def updateResolution(self):
         self.ri += 1
         if self.ri >= len(self.resolutions):
             self.ri = 0
         x = self.resolutions[self.ri][0]
         y = self.resolutions[self.ri][1]
+        self.close()
         self.initCaptureDevice()
         self.poi = [(0,y),(x,y),(x,0),(0,0)]
         return

@@ -87,9 +87,9 @@ def onMouse(event,x,y,flags,param):
                     zidx = int(match.group(1))
                     if x <= 26:
                         if Arena.zone[zidx].v4l2ucp != -1:
-                            Arena.zone[zidx].closev4l2ucp()
+                            Arena.zone[zidx].closeV4l2ucp()
                         else:
-                            Arena.zone[zidx].openv4l2ucp()
+                            Arena.zone[zidx].openV4l2ucp()
                     elif x <= 185:
                         Arena.zone[zidx].updateVideoDevice()
                     else:
@@ -203,9 +203,10 @@ while True:
                 wallCenterY = findCenter([Arena.corners[3],Arena.corners[0]])
                 maxX = Arena.corners[1][0]-Arena.corners[0][0]
                 maxY = Arena.corners[3][1]-Arena.corners[0][1]
-                arenaPtX = int(float(pt[0]-wallCenterY[0])/float(maxX)*z.actualsize[0])
-                arenaPtY = int(float(pt[1]-wallCenterX[1])/float(maxY)*z.actualsize[1])
-                botLocArena[botId] = (arenaPtX, arenaPtY)
+                if maxX > 0 and maxY > 0:
+                    arenaPtX = int(float(pt[0]-wallCenterY[0])/float(maxX)*z.actualsize[0])
+                    arenaPtY = int(float(pt[1]-wallCenterX[1])/float(maxY)*z.actualsize[1])
+                    botLocArena[botId] = (arenaPtX, arenaPtY)
                     
                 #update the bots heading
                 x = symbol[1][3][0] - symbol[1][0][0]
@@ -271,9 +272,10 @@ while True:
     
     for z in Arena.zone:
         output = str(z.id)+": "
-        output += z.videodevices[z.vdi] if z.vdi > -1 else "Off"
-        output += " "+str(z.resolutions[z.ri][0])+"x"+str(z.resolutions[z.ri][1])
+        output += z.videodevices[z.vdi][5:] if z.vdi > -1 else "Off"
         cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
+        output = str(z.resolutions[z.ri][0])+"x"+str(z.resolutions[z.ri][1])
+        cv2.putText(controlPanelImg, output, (cppt[0]+190,cppt[1]), cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[4], 1)
         menurows.append("videoDevice"+str(z.id))
         cppt = (cppt[0],cppt[1]+cplh)
     
