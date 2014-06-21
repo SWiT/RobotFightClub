@@ -1,20 +1,22 @@
 import re, os, subprocess, cv2, time
+import bot
 CV_CAP_PROP_FRAME_WIDTH = 3
 CV_CAP_PROP_FRAME_HEIGHT = 4
 
 class Arena:    
-    numzones = 1    #number of Zones
-    numpoi = 4      #number of POI
-    numbots = 1     #number of bots
-    x = 0           #maximum X value
-    y = 0           #maximum Y value
-    zone = []
-    gameon = False
-    videodevices = []
-    btserialdevices = []
-    corners = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
-      
     def __init__(self):
+        self.numzones = 1    #number of Zones
+        self.numpoi = 4      #number of POI
+        self.numbots = 1     #number of bots
+        self.x = 0           #maximum X value
+        self.y = 0           #maximum Y value
+        self.zone = []
+        self.bot = []
+        self.gameon = False
+        self.videodevices = []
+        self.btserialdevices = []
+        self.corners = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
+        
         #Get lists of video and BT devices
         video_pattern = re.compile('^video(\d)$')
         btserial_pattern = re.compile('^rfcomm(\d)$')
@@ -27,10 +29,19 @@ class Arena:
                 self.btserialdevices.append('/dev/'+dev)     
         self.videodevices.sort()  
         self.btserialdevices.sort()
-        self.buildZones()
         print self.videodevices
         print self.btserialdevices
-    
+        
+        self.buildZones()
+        self.buildBots()
+        
+    def updateNumberOfZones(self):
+        self.numzones += 1
+        if self.numzones > len(self.videodevices):
+            self.numzones = 1
+        self.buildZones()
+        return 
+        
     def buildZones(self):
         self.numpoi = (self.numzones * 2) + 2 #number of poi
         for z in self.zone:
@@ -40,18 +51,19 @@ class Arena:
         for idx in range(0,self.numzones):
             z = Zone(idx, self.numzones, self.numpoi, self.videodevices)
             self.zone.append(z)
-            
-    def updateNumberOfZones(self):
-        self.numzones += 1
-        if self.numzones > len(self.videodevices):
-            self.numzones = 1
-        self.buildZones()
-        return
-    
+  
     def updateNumBots(self):
         self.numbots += 1
         if self.numbots > 4:
             self.numbots = 0
+        self.buildBots()
+        return
+    
+    def buildBots(self):
+        self.bot = []
+        for idx in range(0,self.numbots):
+            b = bot.Bot(idx)
+            self.bot.append(b)
         return
     
     def toggleGameOn(self):

@@ -158,18 +158,10 @@ cv2.createTrackbar('Scan (ms)', 'ArenaControlPanel', dm_timeout, 1000, updateTim
 cv2.createTrackbar('Threshold', 'ArenaControlPanel', threshold, 255, updateThreshold)
  
 poi_pattern = re.compile('^C(\d)$')
-
-botLocAbs = [(0,0), (0,0), (0,0), (0,0)]
-botLocArena = [(0,0), (0,0), (0,0), (0,0)]
-botHeading = [0, 0, 0, 0]
-botAlive = [False, False, False, False]
-botTime = [time.time(), time.time(), time.time(), time.time()]    
 bot_pattern = re.compile('^(\d{2})$')
 
 cv2.setMouseCallback("ArenaControlPanel", onMouse)
 
-
-          
 exit = False
 
 ###############
@@ -228,31 +220,31 @@ while True:
             #Bot Symbol
             match = bot_pattern.match(symbol[0])
             if match:
-                pt = findCenter(symbol[1])
                 botId = int(match.group(1))
-                if botId >= Arena.numbots:
+                if botId < 0 or Arena.numbots <=botId:
                     continue
-
+                bot = Arena.bot[botId]
                 #update botTime
-                botTime[botId] = time.time();
+                bot.time = time.time();
 
                 #update the bots location
-                botLocAbs[botId] = pt
-                wallCenterX = findCenter([Arena.corners[1],Arena.corners[0]])
-                wallCenterY = findCenter([Arena.corners[3],Arena.corners[0]])
-                maxX = Arena.corners[1][0]-Arena.corners[0][0]
-                maxY = Arena.corners[3][1]-Arena.corners[0][1]
+                pt = findCenter(symbol[1])
+                bot.locZonePx = pt
+                wallCenterX = findCenter([z.poi[1],z.poi[0]])
+                wallCenterY = findCenter([z.poi[3],z.poi[0]])
+                maxX = z.poi[1][0]-z.poi[0][0]
+                maxY = z.poi[3][1]-z.poi[0][1]
                 if maxX > 0 and maxY > 0:
-                    arenaPtX = int(float(pt[0]-wallCenterY[0])/float(maxX)*z.actualsize[0])
-                    arenaPtY = int(float(pt[1]-wallCenterX[1])/float(maxY)*z.actualsize[1])
-                    botLocArena[botId] = (arenaPtX, arenaPtY)
+                    zonePtX = int(float(pt[0]-wallCenterY[0])/float(maxX)*z.actualsize[0])
+                    zonePtY = int(float(pt[1]-wallCenterX[1])/float(maxY)*z.actualsize[1])
+                    bot.locZone = (zonePtX, zonePtY)
                     
                 #update the bots heading
                 x = symbol[1][3][0] - symbol[1][0][0]
                 y = symbol[1][0][1] - symbol[1][3][1]
                 h = math.degrees(math.atan2(y,x))
                 if h < 0: h = 360 + h
-                botHeading[botId] = int(round(h,0))
+                bot.heading = int(round(h,0))
 
                 #determine the bot's alive or dead status
                 pt0 = symbol[1][0]
@@ -266,7 +258,7 @@ while True:
                     cv2.rectangle(outputImg, (x+5,y+5), (x-5,y-5), colorCode[5])
                 roi = threshImg[y-5:y+6,x-5:x+6]
                 scAvg = cv2.mean(roi)
-                botAlive[botId] = scAvg[0] >= 10
+                bot.alive = scAvg[0] >= 10
                 
 
                 #draw the borders, heading, and text for bot symbol
@@ -293,17 +285,18 @@ while True:
             drawBorder(outputImg, z.poi, colorCode[0], 2)  
 
             #Last Known Bot Locations
-            for idx,pt in enumerate(botLocAbs):
+            for bot in Arena.bot:
+                pt = bot.locZonePx
                 if pt[0] == 0 and pt[1] == 0:
                     continue
-                if botAlive[idx]:
+                if bot.alive:
                     color = colorCode[3]
                 else:
                     color = colorCode[2]
                 cv2.circle(outputImg, pt, 30, color, 2)
                 textPt = (pt[0]-8, pt[1]+8)
-                cv2.putText(outputImg, str(idx), textPt, cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
-                ang = botHeading[idx]*(math.pi/180) #convert back to radians
+                cv2.putText(outputImg, str(bot.id), textPt, cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
+                ang = bot.heading*(math.pi/180) #convert back to radians
                 pt0 = ((pt[0]+int(math.cos(ang)*30)), (pt[1]-int(math.sin(ang)*30)))
                 pt1 = ((pt[0]+int(math.cos(ang)*30*3.25)), (pt[1]-int(math.sin(ang)*30*3.25)))
                 cv2.line(outputImg, pt0, pt1, color, 2)
@@ -331,7 +324,6 @@ while True:
     cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     menurows.append("zones")
     cppt = (cppt[0],cppt[1]+cplh)
-    
     for z in Arena.zone:
         output = str(z.id)+": "
         cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
@@ -385,7 +377,15 @@ while True:
     cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     menurows.append("numbots")
     cppt = (cppt[0],cppt[1]+cplh)
-     
+    
+    #Draw Bot Settings
+    for bot in Arena.bot:
+        status = str(bot.id)+":"
+        status += ' '+str(bot.serialdev)
+        cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
+        menurows.append("botserial"+str(bot.id))
+        cppt = (cppt[0],cppt[1]+cplh)
+         
     menuSpacer()
         
     #Draw Zone POI statuses
@@ -398,14 +398,14 @@ while True:
             cppt = (cppt[0],cppt[1]+cplh)
         
     #Draw Bot Statuses
-    for idx in range(0,Arena.numbots):
-        status = str(idx)+":"
-        status += ' '+str(botLocArena[idx])
-        status += ' '+str(botHeading[idx])
-        status += ' '+str(int(round((time.time()-botTime[idx])*1000,0)))
-        status += ' '+("Alive" if botAlive[idx] else "Dead")
+    for bot in Arena.bot:
+        status = str(bot.id)+":"
+        status += ' '+str(bot.locZone)
+        status += ' '+str(bot.heading)
+        status += ' '+('A' if bot.alive else 'D')
+        status += ' '+str(int(round((time.time()-bot.time)*1000,0)))
         cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
-        menurows.append("bot"+str(idx))
+        menurows.append("bot"+str(bot.id))
         cppt = (cppt[0],cppt[1]+cplh)
     
     #Skip a row
