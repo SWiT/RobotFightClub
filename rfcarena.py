@@ -83,6 +83,7 @@ def onMouse(event,x,y,flags,param):
             if menurows[rowClicked] == "zones":
                 Arena.updateNumberOfZones()
                 display = 0
+                
             elif menurows[rowClicked] == "exit":
                 exit = True
                 
@@ -306,8 +307,19 @@ while True:
                 pt0 = ((pt[0]+int(math.cos(ang)*30)), (pt[1]-int(math.sin(ang)*30)))
                 pt1 = ((pt[0]+int(math.cos(ang)*30*3.25)), (pt[1]-int(math.sin(ang)*30*3.25)))
                 cv2.line(outputImg, pt0, pt1, color, 2)
+        
+        #Merge images if Display: All
+        if display == -1:
+            if allImg is None or z.id == 0: #not set or first
+                allImg = zeros((height, width*Arena.numzones, 3), uint8)
+                
+            allImg[0:height, (z.id*width):((z.id+1)*width)] = outputImg
+            if z.id+1 == len(Arena.zone):   #last
+                outputImg = allImg
+                           
+    #########################################################
 
-    #Draw menu on Control Panel window
+    #Draw Control Panel
     cph = len(menurows)*cplh+5 #calculate window height
     controlPanelImg = zeros((cph,cpw,3), uint8) #create a blank image for the control panel
     cppt = (0,cplh) #current text position  
@@ -405,29 +417,20 @@ while True:
     menurows.append("exit")
     cppt = (cppt[0],cppt[1]+cplh)
     
-    
-    #Merge images if Display: All
-    if display == -1:
-        if allImg is None or z.id == 0: #not set or first
-            allImg = zeros((height, width*Arena.numzones, 3), uint8)
-            
-        allImg[0:height, (z.id*width):((z.id+1)*width)] = outputImg
-        if z.id+1 == len(Arena.zone):   #last
-            outputImg = allImg
-    
-    if display == z.id or (display == -1 and z.id+1 == len(Arena.zone)):
-        #Resize output image
-        if 0 < displaySize < 100:
-            r = float(displaySize)/100
-            outputImg = cv2.resize(outputImg, (0,0), fx=r, fy=r)
-    
-        #Display the image or frame of video
-        cv2.imshow("ArenaScanner", outputImg)
-        cv2.imshow("ArenaControlPanel", controlPanelImg)
+    #############################################
 
-        #Calculate FPS
-        fps = int(1/(time.time() - frametime))
-        frametime = time.time()
+    #Resize output image
+    if 0 < displaySize < 100:
+        r = float(displaySize)/100
+        outputImg = cv2.resize(outputImg, (0,0), fx=r, fy=r)
+
+    #Display the image or frame of video
+    cv2.imshow("ArenaScanner", outputImg)
+    cv2.imshow("ArenaControlPanel", controlPanelImg)
+
+    #Calculate FPS
+    fps = int(1/(time.time() - frametime))
+    frametime = time.time()
 
     #Exit
     if exit: 
