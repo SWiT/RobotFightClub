@@ -141,6 +141,7 @@ cv2.startWindowThread()
 display = 0
 displaySize = 100
 displayMode = 1
+allImg = None
 colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217), (127,127,127)) #Blue, Green, Red, Yellow, Purple, Gray
 threshold = 150
 frametime = time.time()
@@ -165,6 +166,8 @@ botTime = [time.time(), time.time(), time.time(), time.time()]
 bot_pattern = re.compile('^(\d{2})$')
 
 cv2.setMouseCallback("ArenaControlPanel", onMouse)
+
+
           
 exit = False
 
@@ -183,20 +186,22 @@ while True:
             print("Error reading from camera: "+str(z.vdi));
             exit = True
             break;
-
-        #Apply image transformations
-        grayImg = cv2.cvtColor(origImg, cv2.COLOR_BGR2GRAY) #convert to grayscale
-        ret,threshImg = cv2.threshold(grayImg, threshold, 255, cv2.THRESH_BINARY)
         width = size(origImg, 1)
         height = size(origImg, 0)
-        if display == z.id:
+
+        #Apply image transformations
+        threshImg = cv2.cvtColor(origImg, cv2.COLOR_BGR2GRAY) #convert to grayscale
+        ret,threshImg = cv2.threshold(threshImg, threshold, 255, cv2.THRESH_BINARY)
+        
+        #Start Output Image
+        if display == z.id or display == -1:
             if displayMode >= 2:
                 outputImg = zeros((height, width, 3), uint8) #create a blank image
             elif displayMode == 0:
                 outputImg = cv2.cvtColor(threshImg, cv2.COLOR_GRAY2BGR)
             else:
                 outputImg = origImg;
-    
+            
         #Scan for DataMatrix
         dm_read.decode(width, height, buffer(origImg.tostring()))  
 
@@ -212,10 +217,12 @@ while True:
                     if sval == poival:
                         z.poi[idx] = symbol[1][idx]
                         z.poitime[idx] = time.time()
-                        if display == z.id and displayMode < 3:
+                        if (display == z.id or display == -1) and displayMode < 3:
                             drawBorder(outputImg, symbol[1], colorCode[0], 2)
                             pt = (symbol[1][1][0]-35, symbol[1][1][1]-25)  
                             cv2.putText(outputImg, str(idx), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[0], 2)
+                        
+                            
 
             #Bot Symbol
             match = bot_pattern.match(symbol[0])
@@ -254,7 +261,7 @@ while True:
                 y = int((pt2[1] - pt3[1])*.33 + pt3[1])
                 x += int((pt3[0] - pt0[0])*.24)
                 y += int((pt3[1] - pt0[1])*.24)
-                if display == z.id:
+                if display == z.id or display == -1:
                     cv2.rectangle(outputImg, (x+5,y+5), (x-5,y-5), colorCode[5])
                 roi = threshImg[y-5:y+6,x-5:x+6]
                 scAvg = cv2.mean(roi)
@@ -262,7 +269,7 @@ while True:
                 
 
                 #draw the borders, heading, and text for bot symbol
-                if display == z.id and displayMode < 3:
+                if (display == z.id or display == -1) and displayMode < 3:
                     drawBorder(outputImg, symbol[1], colorCode[1], 2)                  
                     pt = (pt[0]-15, pt[1]+10)            
                     cv2.putText(outputImg, match.group(1), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[1], 2)
@@ -272,7 +279,7 @@ while True:
                     cv2.line(outputImg, pt0, pt1, colorCode[1], 2)
 
         #Draw Objects on Scanner window if this zone is displayed
-        if display == z.id:
+        if display == z.id or display == -1:
             #Crosshair in center
             pt0 = (width/2,height/2-5)
             pt1 = (width/2,height/2+5)
@@ -398,18 +405,29 @@ while True:
     menurows.append("exit")
     cppt = (cppt[0],cppt[1]+cplh)
     
-    #Resize output image
-    if 0 < displaySize < 100:
-        r = float(displaySize)/100
-        outputImg = cv2.resize(outputImg, (0,0), fx=r, fy=r)
     
-    #Display the image or frame of video
-    cv2.imshow("ArenaScanner", outputImg)
-    cv2.imshow("ArenaControlPanel", controlPanelImg)
+    #Merge images if Display: All
+    if display == -1:
+        if allImg is None or z.id == 0: #not set or first
+            allImg = zeros((height, width*Arena.numzones, 3), uint8)
+            
+        allImg[0:height, (z.id*width):((z.id+1)*width)] = outputImg
+        if z.id+1 == len(Arena.zone):   #last
+            outputImg = allImg
+    
+    if display == z.id or (display == -1 and z.id+1 == len(Arena.zone)):
+        #Resize output image
+        if 0 < displaySize < 100:
+            r = float(displaySize)/100
+            outputImg = cv2.resize(outputImg, (0,0), fx=r, fy=r)
+    
+        #Display the image or frame of video
+        cv2.imshow("ArenaScanner", outputImg)
+        cv2.imshow("ArenaControlPanel", controlPanelImg)
 
-    #Calculate FPS
-    fps = int(1/(time.time() - frametime))
-    frametime = time.time()
+        #Calculate FPS
+        fps = int(1/(time.time() - frametime))
+        frametime = time.time()
 
     #Exit
     if exit: 
