@@ -289,8 +289,8 @@ while True:
             pt1 = (width/2+5,height/2)
             cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
             
-            #Arena
-            drawBorder(outputImg, Arena.corners, colorCode[0], 2)  
+            #Zone edges
+            drawBorder(outputImg, z.poi, colorCode[0], 2)  
 
             #Last Known Bot Locations
             for idx,pt in enumerate(botLocAbs):
