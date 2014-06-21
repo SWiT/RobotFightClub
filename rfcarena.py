@@ -47,8 +47,24 @@ def updateThreshold(v):
     threshold = v
     return
 
+def updateDisplay(v = None):
+    global display, Arena
+    if v is not None:
+        display = v
+    else:
+        display += 1
+        if display >= Arena.numzones:
+            display = -1
+    return
+    
 
-
+def updateDisplaySize():
+    global displaySize
+    displaySize += 50
+    if displaySize > 100:
+        displaySize = 50
+    return
+        
 #Insert an empty row into the ArenaControlPanel menu    
 def menuSpacer():
     global menurows, cppt, cplh
@@ -56,17 +72,17 @@ def menuSpacer():
     cppt = (cppt[0],cppt[1]+cplh)
     
 def onMouse(event,x,y,flags,param):
-    if flags == 1: print event,x,y,flags,param
+    #if flags == 1: print event,x,y,flags,param
     #print cv2.EVENT_LBUTTONDOWN, cv2.EVENT_RBUTTONDOWN, cv2.EVENT_MBUTTONDOWN
     #print cv2.EVENT_LBUTTONUP, cv2.EVENT_RBUTTONUP, cv2.EVENT_MBUTTONUP
     #print cv2.EVENT_LBUTTONDBLCLK, cv2.EVENT_RBUTTONDBLCLK, cv2.EVENT_MBUTTONDBLCLK
-    global cplh, menurows, exit, dm_max, dm_read, dm_timeout
+    global cplh, menurows, exit, dm_max, dm_read, dm_timeout, display
     if event == cv2.EVENT_LBUTTONUP and flags == 1:
         rowClicked = y/cplh
         if rowClicked < len(menurows):
             if menurows[rowClicked] == "zones":
                 Arena.updateNumberOfZones()
-                
+                display = 0
             elif menurows[rowClicked] == "exit":
                 exit = True
                 
@@ -75,6 +91,12 @@ def onMouse(event,x,y,flags,param):
                 
             elif menurows[rowClicked] == "displaymode":
                 updateDisplayMode()
+                
+            elif menurows[rowClicked] == "display":
+                if x <= 150:
+                    updateDisplay()
+                else:
+                    updateDisplaySize()
                 
             elif menurows[rowClicked] == "numbots":
                 Arena.updateNumBots()
@@ -87,7 +109,7 @@ def onMouse(event,x,y,flags,param):
                 if match:
                     zidx = int(match.group(1))
                     if x <= 28:
-                        print "SELECT THIS"
+                        updateDisplay(zidx)
                     elif x <= 125:
                         Arena.zone[zidx].updateVideoDevice()
                     elif x <= 275:
@@ -115,6 +137,8 @@ cv2.namedWindow("ArenaScanner")
 cv2.namedWindow("ArenaControlPanel")
 cv2.startWindowThread()
 
+display = 0
+displaySize = 100
 displayMode = 1
 colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217), (127,127,127)) #Blue, Green, Red, Yellow, Purple, Gray
 threshold = 150
@@ -270,8 +294,9 @@ while True:
             cv2.line(outputImg, pt0, pt1, color, 2)
 
     #Draw menu on Control Panel window
+    cph = (9 + Arena.numbots + Arena.numzones + 4*Arena.numzones)*cplh+3
     controlPanelImg = zeros((cph,cpw,3), uint8) #create a blank image for the control panel
-    cppt = (0,20) #current text position  
+    cppt = (0,cplh) #current text position  
     menutextcolor = (255,255,255)
     menurows = []
         
@@ -289,12 +314,21 @@ while True:
         output = str(z.resolutions[z.ri][0])+"x"+str(z.resolutions[z.ri][1])
         cv2.putText(controlPanelImg, output, (cppt[0]+125,cppt[1]), cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
         output = "settings"
-        cv2.putText(controlPanelImg, output, (cppt[0]+270,cppt[1]), cv2.FONT_HERSHEY_PLAIN, 1.0, menutextcolor, 1)
+        cv2.putText(controlPanelImg, output, (cppt[0]+270,cppt[1]-2), cv2.FONT_HERSHEY_PLAIN, 1.0, menutextcolor, 1)
         menurows.append("videoDevice"+str(z.id))
         cppt = (cppt[0],cppt[1]+cplh)
     
     menuSpacer()
         
+    #Display
+    output = "Display: "+str(display) if display>-1 else "Display: All"
+    cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
+    #Display Size
+    output = "Size: "+str(displaySize)
+    cv2.putText(controlPanelImg, output, (cppt[0]+150,cppt[1]), cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
+    menurows.append("display")
+    cppt = (cppt[0],cppt[1]+cplh)
+    
     #Display Mode Labels
     displayModeLabel = "Display Mode: "      
     if displayMode == 0: #display source image
