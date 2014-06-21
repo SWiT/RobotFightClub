@@ -60,9 +60,9 @@ def updateDisplay(v = None):
 
 def updateDisplaySize():
     global displaySize
-    displaySize += 50
+    displaySize += 25
     if displaySize > 100:
-        displaySize = 50
+        displaySize = 25
     return
         
 #Insert an empty row into the ArenaControlPanel menu    
@@ -132,6 +132,7 @@ cph = 640 #control panel height
 cpw = 350 #control panel width
 cplh = 20 #control panel line height
 cppt = (0,cplh) #control panel current text output position    
+menurows = []
 
 cv2.namedWindow("ArenaScanner")
 cv2.namedWindow("ArenaControlPanel")
@@ -142,6 +143,8 @@ displaySize = 100
 displayMode = 1
 colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217), (127,127,127)) #Blue, Green, Red, Yellow, Purple, Gray
 threshold = 150
+frametime = time.time()
+fps = 0
 
 #DataMatrix  
 dm_max = Arena.numbots + Arena.numpoi; #points of interest plus the bots
@@ -170,10 +173,11 @@ exit = False
 ###############
 while True:
     for z in Arena.zone:
-        #get the next frame from the zones capture device
+        #skip if capture is disabled
         if z.cap == -1:
             continue
             
+        #get the next frame from the zones capture device
         success, origImg = z.cap.read()
         if not success:
             print("Error reading from camera: "+str(z.vdi));
@@ -185,25 +189,18 @@ while True:
         ret,threshImg = cv2.threshold(grayImg, threshold, 255, cv2.THRESH_BINARY)
         width = size(origImg, 1)
         height = size(origImg, 0)
-        if displayMode >= 2:
-            outputImg = zeros((height, width, 3), uint8) #create a blank image
-        elif displayMode == 0:
-            outputImg = cv2.cvtColor(threshImg, cv2.COLOR_GRAY2BGR)
-        else:
-            outputImg = origImg;
+        if display == z.id:
+            if displayMode >= 2:
+                outputImg = zeros((height, width, 3), uint8) #create a blank image
+            elif displayMode == 0:
+                outputImg = cv2.cvtColor(threshImg, cv2.COLOR_GRAY2BGR)
+            else:
+                outputImg = origImg;
     
-        #crosshair in center
-        pt0 = (width/2,height/2-5)
-        pt1 = (width/2,height/2+5)
-        cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
-        pt0 = (width/2-5,height/2)
-        pt1 = (width/2+5,height/2)
-        cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
-
         #Scan for DataMatrix
         dm_read.decode(width, height, buffer(origImg.tostring()))  
 
-        #draw borders on detected symbols and record object locations
+        #For each detected DataMatrix symbol
         for dm_idx in range(1, dm_read.count()+1):
             symbol = dm_read.stats(dm_idx)
             
@@ -215,7 +212,7 @@ while True:
                     if sval == poival:
                         z.poi[idx] = symbol[1][idx]
                         z.poitime[idx] = time.time()
-                        if displayMode < 3:
+                        if display == z.id and displayMode < 3:
                             drawBorder(outputImg, symbol[1], colorCode[0], 2)
                             pt = (symbol[1][1][0]-35, symbol[1][1][1]-25)  
                             cv2.putText(outputImg, str(idx), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[0], 2)
@@ -257,14 +254,15 @@ while True:
                 y = int((pt2[1] - pt3[1])*.33 + pt3[1])
                 x += int((pt3[0] - pt0[0])*.24)
                 y += int((pt3[1] - pt0[1])*.24)
-                cv2.rectangle(outputImg, (x+5,y+5), (x-5,y-5), colorCode[5])
+                if display == z.id:
+                    cv2.rectangle(outputImg, (x+5,y+5), (x-5,y-5), colorCode[5])
                 roi = threshImg[y-5:y+6,x-5:x+6]
                 scAvg = cv2.mean(roi)
                 botAlive[botId] = scAvg[0] >= 10
                 
 
                 #draw the borders, heading, and text for bot symbol
-                if displayMode < 3:
+                if display == z.id and displayMode < 3:
                     drawBorder(outputImg, symbol[1], colorCode[1], 2)                  
                     pt = (pt[0]-15, pt[1]+10)            
                     cv2.putText(outputImg, match.group(1), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[1], 2)
@@ -273,28 +271,37 @@ while True:
                     pt1 = (pt0[0]+int(ptdiff[0]*1.20), pt0[1]+int(ptdiff[1]*1.20))
                     cv2.line(outputImg, pt0, pt1, colorCode[1], 2)
 
-        #Draw Objects on Scanner window
-        #Arena
-        drawBorder(outputImg, Arena.corners, colorCode[0], 2)  
+        #Draw Objects on Scanner window if this zone is displayed
+        if display == z.id:
+            #Crosshair in center
+            pt0 = (width/2,height/2-5)
+            pt1 = (width/2,height/2+5)
+            cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
+            pt0 = (width/2-5,height/2)
+            pt1 = (width/2+5,height/2)
+            cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
+            
+            #Arena
+            drawBorder(outputImg, Arena.corners, colorCode[0], 2)  
 
-        #Last Know Bot Locations
-        for idx,pt in enumerate(botLocAbs):
-            if pt[0] == 0 and pt[1] == 0:
-                continue
-            if botAlive[idx]:
-                color = colorCode[3]
-            else:
-                color = colorCode[2]
-            cv2.circle(outputImg, pt, 30, color, 2)
-            textPt = (pt[0]-8, pt[1]+8)
-            cv2.putText(outputImg, str(idx), textPt, cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
-            ang = botHeading[idx]*(math.pi/180) #convert back to radians
-            pt0 = ((pt[0]+int(math.cos(ang)*30)), (pt[1]-int(math.sin(ang)*30)))
-            pt1 = ((pt[0]+int(math.cos(ang)*30*3.25)), (pt[1]-int(math.sin(ang)*30*3.25)))
-            cv2.line(outputImg, pt0, pt1, color, 2)
+            #Last Known Bot Locations
+            for idx,pt in enumerate(botLocAbs):
+                if pt[0] == 0 and pt[1] == 0:
+                    continue
+                if botAlive[idx]:
+                    color = colorCode[3]
+                else:
+                    color = colorCode[2]
+                cv2.circle(outputImg, pt, 30, color, 2)
+                textPt = (pt[0]-8, pt[1]+8)
+                cv2.putText(outputImg, str(idx), textPt, cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
+                ang = botHeading[idx]*(math.pi/180) #convert back to radians
+                pt0 = ((pt[0]+int(math.cos(ang)*30)), (pt[1]-int(math.sin(ang)*30)))
+                pt1 = ((pt[0]+int(math.cos(ang)*30*3.25)), (pt[1]-int(math.sin(ang)*30*3.25)))
+                cv2.line(outputImg, pt0, pt1, color, 2)
 
     #Draw menu on Control Panel window
-    cph = (9 + Arena.numbots + Arena.numzones + 4*Arena.numzones)*cplh+3
+    cph = len(menurows)*cplh+5 #calculate window height
     controlPanelImg = zeros((cph,cpw,3), uint8) #create a blank image for the control panel
     cppt = (0,cplh) #current text position  
     menutextcolor = (255,255,255)
@@ -324,13 +331,13 @@ while True:
     output = "Display: "+str(display) if display>-1 else "Display: All"
     cv2.putText(controlPanelImg, output, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     #Display Size
-    output = "Size: "+str(displaySize)
+    output = "Size: "+str(displaySize)+"%"
     cv2.putText(controlPanelImg, output, (cppt[0]+150,cppt[1]), cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     menurows.append("display")
     cppt = (cppt[0],cppt[1]+cplh)
     
     #Display Mode Labels
-    displayModeLabel = "Display Mode: "      
+    displayModeLabel = "Mode: "      
     if displayMode == 0: #display source image
         displayModeLabel += "Threshold"   
     elif displayMode == 1: #display source with data overlay
@@ -340,8 +347,13 @@ while True:
     elif displayMode == 3: #display the only the bots point of view
         displayModeLabel += "Bot POV"
     cv2.putText(controlPanelImg, displayModeLabel, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
+    #Draw FPS
+    output = "FPS: "+str(fps)
+    cv2.putText(controlPanelImg, output, (cpw-105,cppt[1]), cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     menurows.append("displaymode")
     cppt = (cppt[0],cppt[1]+cplh)
+    
+    menuSpacer()
     
     #Game Status
     status = "Game: On" if Arena.gameon else "Game: Off"
@@ -385,11 +397,19 @@ while True:
     cv2.putText(controlPanelImg, "Exit", cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     menurows.append("exit")
     cppt = (cppt[0],cppt[1]+cplh)
-        
+    
+    #Resize output image
+    if 0 < displaySize < 100:
+        r = float(displaySize)/100
+        outputImg = cv2.resize(outputImg, (0,0), fx=r, fy=r)
     
     #Display the image or frame of video
     cv2.imshow("ArenaScanner", outputImg)
     cv2.imshow("ArenaControlPanel", controlPanelImg)
+
+    #Calculate FPS
+    fps = int(1/(time.time() - frametime))
+    frametime = time.time()
 
     #Exit
     if exit: 
