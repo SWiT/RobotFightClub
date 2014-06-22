@@ -29,8 +29,6 @@ class Arena:
                 self.btserialdevices.append('/dev/'+dev)     
         self.videodevices.sort()  
         self.btserialdevices.sort()
-        print self.videodevices
-        print self.btserialdevices
         
         self.buildZones()
         self.buildBots()

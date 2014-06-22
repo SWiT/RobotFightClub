@@ -2,32 +2,11 @@ import cv2, serial, sys, math, time, subprocess, os, re, Image
 from numpy import *
 from pydmtx import DataMatrix
 import arena
+from utils import *
 
 ###############
 ## FUNCTIONS
 ###############
-def dist(p0, p1):
-    return math.sqrt((p0[0] - p1[0])**2 + (p0[1] - p1[1])**2)
-
-def findCenter(pts):
-    x = 0
-    y = 0
-    l = len(pts)
-    for i in range(0,l):
-        x += pts[i][0]
-        y += pts[i][1]
-    return (int(x/l), int(y/l))
-
-def findDiffs(pt0, pt1):
-    x = pt1[0]-pt0[0]
-    y = pt1[1]-pt0[1]
-    return (x,y)
-
-def drawBorder(img, symbol, color, thickness):
-    cv2.line(img, symbol[0], symbol[1], color, thickness)
-    cv2.line(img, symbol[1], symbol[2], color, thickness)
-    cv2.line(img, symbol[2], symbol[3], color, thickness)
-    cv2.line(img, symbol[3], symbol[0], color, thickness)
             
 def updateTimeout(v):
     global dm_timeout, dm_read
@@ -214,9 +193,7 @@ while True:
                             drawBorder(outputImg, symbol[1], colorCode[0], 2)
                             pt = (symbol[1][1][0]-35, symbol[1][1][1]-25)  
                             cv2.putText(outputImg, str(idx), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[0], 2)
-                        
-                            
-
+            
             #Bot Symbol
             match = bot_pattern.match(symbol[0])
             if match:
@@ -224,52 +201,13 @@ while True:
                 if botId < 0 or Arena.numbots <=botId:
                     continue
                 bot = Arena.bot[botId]
-                #update botTime
-                bot.time = time.time();
-
-                #update the bots location
-                pt = findCenter(symbol[1])
-                bot.locZonePx = pt
-                wallCenterX = findCenter([z.poi[1],z.poi[0]])
-                wallCenterY = findCenter([z.poi[3],z.poi[0]])
-                maxX = z.poi[1][0]-z.poi[0][0]
-                maxY = z.poi[3][1]-z.poi[0][1]
-                if maxX > 0 and maxY > 0:
-                    zonePtX = int(float(pt[0]-wallCenterY[0])/float(maxX)*z.actualsize[0])
-                    zonePtY = int(float(pt[1]-wallCenterX[1])/float(maxY)*z.actualsize[1])
-                    bot.locZone = (zonePtX, zonePtY)
-                    
-                #update the bots heading
-                x = symbol[1][3][0] - symbol[1][0][0]
-                y = symbol[1][0][1] - symbol[1][3][1]
-                h = math.degrees(math.atan2(y,x))
-                if h < 0: h = 360 + h
-                bot.heading = int(round(h,0))
-
-                #determine the bot's alive or dead status
-                pt0 = symbol[1][0]
-                pt2 = symbol[1][2]
-                pt3 = symbol[1][3]
-                x = int((pt2[0] - pt3[0])*.33 + pt3[0])
-                y = int((pt2[1] - pt3[1])*.33 + pt3[1])
-                x += int((pt3[0] - pt0[0])*.24)
-                y += int((pt3[1] - pt0[1])*.24)
-                if display == z.id or display == -1:
-                    cv2.rectangle(outputImg, (x+5,y+5), (x-5,y-5), colorCode[5])
-                roi = threshImg[y-5:y+6,x-5:x+6]
-                scAvg = cv2.mean(roi)
-                bot.alive = scAvg[0] >= 10
                 
+                #update the bot's data
+                bot.setData(symbol[1], z, threshImg)
 
-                #draw the borders, heading, and text for bot symbol
+                #draw the bot's symbol
                 if (display == z.id or display == -1) and displayMode < 3:
-                    drawBorder(outputImg, symbol[1], colorCode[1], 2)                  
-                    pt = (pt[0]-15, pt[1]+10)            
-                    cv2.putText(outputImg, match.group(1), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[1], 2)
-                    ptdiff = findDiffs(symbol[1][1], symbol[1][2])
-                    pt0 = findCenter([symbol[1][2], symbol[1][3]])
-                    pt1 = (pt0[0]+int(ptdiff[0]*1.20), pt0[1]+int(ptdiff[1]*1.20))
-                    cv2.line(outputImg, pt0, pt1, colorCode[1], 2)
+                    bot.drawOutput(outputImg)
 
         #Draw Objects on Scanner window if this zone is displayed
         if display == z.id or display == -1:
@@ -388,15 +326,6 @@ while True:
          
     menuSpacer()
         
-    #Draw Zone POI statuses
-    for z in Arena.zone:
-        for idx in range(0,4):
-            status = "Z"+str(z.id)+" C"+str(z.poisymbol[idx])+":"
-            status += ' '+str(int(round((time.time()-z.poitime[idx])*1000,0)))
-            cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
-            menurows.append("z"+str(z.id)+"c"+str(idx))
-            cppt = (cppt[0],cppt[1]+cplh)
-        
     #Draw Bot Statuses
     for bot in Arena.bot:
         status = str(bot.id)+":"
@@ -407,10 +336,17 @@ while True:
         cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
         menurows.append("bot"+str(bot.id))
         cppt = (cppt[0],cppt[1]+cplh)
-    
-    #Skip a row
-    menurows.append("space")
-    cppt = (cppt[0],cppt[1]+cplh)
+        
+    #Draw Zone POI statuses
+    for z in Arena.zone:
+        for idx in range(0,4):
+            status = "Z"+str(z.id)+" C"+str(z.poisymbol[idx])+":"
+            status += ' '+str(int(round((time.time()-z.poitime[idx])*1000,0)))
+            cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
+            menurows.append("z"+str(z.id)+"c"+str(idx))
+            cppt = (cppt[0],cppt[1]+cplh)
+        
+    menuSpacer()
     
     #Draw Exit
     cv2.putText(controlPanelImg, "Exit", cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
