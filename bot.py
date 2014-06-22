@@ -58,18 +58,33 @@ class Bot:
         return
     
     def drawOutput(self, outputImg):
-        x = self.ledPt[0]
-        y = self.ledPt[1]
+        x,y = self.ledPt
         cv2.rectangle(outputImg, (x+5,y+5), (x-5,y-5), self.color_roi)
         
         drawBorder(outputImg, self.symbol, self.color_detected, 2)
                      
-        pt = self.locZonePx
-        pt = (pt[0]-8, pt[1]+8)            
-        cv2.putText(outputImg, str(self.id), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, self.color_detected, 2)
+        x,y = self.locZonePx
+        cv2.putText(outputImg, str(self.id), (x-8, y+8), cv2.FONT_HERSHEY_PLAIN, 1.5, self.color_detected, 2)
         
         ptdiff = findDiffs(self.symbol[1], self.symbol[2])
         pt0 = findCenter([self.symbol[2], self.symbol[3]])
         pt1 = (pt0[0]+int(ptdiff[0]*1.20), pt0[1]+int(ptdiff[1]*1.20))
         cv2.line(outputImg, pt0, pt1, self.color_detected, 2)
         return
+        
+    def drawLastKnowLoc(self, outputImg):
+        x,y = self.locZonePx
+        if x == 0 and y == 0:
+            return
+        if self.alive:
+            color = self.color_alive
+        else:
+            color = self.color_dead
+        cv2.circle(outputImg, (x,y), 30, color, 2)
+        cv2.putText(outputImg, str(self.id), (x-8, y+8), cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
+        ang = self.heading*(math.pi/180) #convert back to radians
+        pt0 = ((x+int(math.cos(ang)*30)), (y-int(math.sin(ang)*30)))
+        pt1 = ((x+int(math.cos(ang)*30*3.25)), (y-int(math.sin(ang)*30*3.25)))
+        cv2.line(outputImg, pt0, pt1, color, 2)
+        return
+        

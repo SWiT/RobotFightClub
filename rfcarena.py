@@ -1,4 +1,4 @@
-import cv2, serial, sys, math, time, subprocess, os, re, Image
+import cv2, serial, time, os, re
 from numpy import *
 import arena
 from utils import *
@@ -114,7 +114,12 @@ display = 0
 displaySize = 100
 displayMode = 1
 allImg = None
-colorCode = ((255,0,0), (0,240,0), (0,0,255), (29,227,245), (224,27,217), (127,127,127)) #Blue, Green, Red, Yellow, Purple, Gray
+COLOR_BLUE = (255,0,0)
+COLOR_GREEN = (0,240,0)
+COLOR_RED = (0,0,255)
+COLOR_YELLOW = (29,227,245)
+COLOR_PURPLE = (224,27,217)
+COLOR_GRAY = (127,127,127)
 threshold = 150
 frametime = time.time()
 fps = 0
@@ -178,9 +183,9 @@ while True:
                         z.poi[idx] = symbol[idx]
                         z.poitime[idx] = time.time()
                         if (display == z.id or display == -1) and displayMode < 3:
-                            drawBorder(outputImg, symbol, colorCode[0], 2)
+                            drawBorder(outputImg, symbol, COLOR_BLUE, 2)
                             pt = (symbol[1][0]-35, symbol[1][1]-25)  
-                            cv2.putText(outputImg, str(idx), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[0], 2)
+                            cv2.putText(outputImg, str(idx), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, COLOR_BLUE, 2)
             
             #Bot Symbol
             match = bot_pattern.match(content)
@@ -198,30 +203,17 @@ while True:
             #Crosshair in center
             pt0 = (width/2,height/2-5)
             pt1 = (width/2,height/2+5)
-            cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
+            cv2.line(outputImg, pt0, pt1, COLOR_PURPLE, 1)
             pt0 = (width/2-5,height/2)
             pt1 = (width/2+5,height/2)
-            cv2.line(outputImg, pt0, pt1, colorCode[4], 1)
+            cv2.line(outputImg, pt0, pt1, COLOR_PURPLE, 1)
             
             #Zone edges
-            drawBorder(outputImg, z.poi, colorCode[0], 2)  
+            drawBorder(outputImg, z.poi, COLOR_BLUE, 2)  
 
             #Last Known Bot Locations
             for bot in Arena.bot:
-                pt = bot.locZonePx
-                if pt[0] == 0 and pt[1] == 0:
-                    continue
-                if bot.alive:
-                    color = colorCode[3]
-                else:
-                    color = colorCode[2]
-                cv2.circle(outputImg, pt, 30, color, 2)
-                textPt = (pt[0]-8, pt[1]+8)
-                cv2.putText(outputImg, str(bot.id), textPt, cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
-                ang = bot.heading*(math.pi/180) #convert back to radians
-                pt0 = ((pt[0]+int(math.cos(ang)*30)), (pt[1]-int(math.sin(ang)*30)))
-                pt1 = ((pt[0]+int(math.cos(ang)*30*3.25)), (pt[1]-int(math.sin(ang)*30*3.25)))
-                cv2.line(outputImg, pt0, pt1, color, 2)
+                bot.drawLastKnowLoc(outputImg)
         
         #Merge images if Display: All
         if display == -1:
