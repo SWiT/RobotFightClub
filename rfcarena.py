@@ -310,23 +310,15 @@ while True:
     menurows.append("gameon")
     cppt = (cppt[0],cppt[1]+cplh)
     
+    menuSpacer()
+    
     #Number of Bots
     status = "Bots: " +str(Arena.numbots)
     cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
     menurows.append("numbots")
     cppt = (cppt[0],cppt[1]+cplh)
-    
-    #Draw Bot Settings
-    for bot in Arena.bot:
-        status = str(bot.id)+":"
-        status += ' '+str(bot.serialdev)
-        cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
-        menurows.append("botserial"+str(bot.id))
-        cppt = (cppt[0],cppt[1]+cplh)
-         
-    menuSpacer()
         
-    #Draw Bot Statuses
+    #Draw Bot Statuses and Settings
     for bot in Arena.bot:
         status = str(bot.id)+":"
         status += ' '+str(bot.locZone)
@@ -336,6 +328,13 @@ while True:
         cv2.putText(controlPanelImg, status, cppt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
         menurows.append("bot"+str(bot.id))
         cppt = (cppt[0],cppt[1]+cplh)
+        
+        status = str(bot.serialdev)
+        cv2.putText(controlPanelImg, status, (cppt[0]+25,cppt[1]), cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
+        menurows.append("botserial"+str(bot.id))
+        cppt = (cppt[0],cppt[1]+cplh)
+    
+    menuSpacer()
         
     #Draw Zone POI statuses
     for z in Arena.zone:
