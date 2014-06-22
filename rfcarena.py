@@ -168,30 +168,28 @@ while True:
         dm.scan(origImg)  
 
         #For each detected DataMatrix symbol
-        for dm_idx in range(1, dm.read.count()+1):
-            symbol = dm.read.stats(dm_idx)
-            
+        for (content,symbol) in dm.symbols:
             #Arena POI/Corners
-            match = poi_pattern.match(symbol[0])
+            match = poi_pattern.match(content)
             if match:
                 sval = int(match.group(1))
                 for idx,poival in enumerate(z.poisymbol):
                     if sval == poival:
-                        z.poi[idx] = symbol[1][idx]
+                        z.poi[idx] = symbol[idx]
                         z.poitime[idx] = time.time()
                         if (display == z.id or display == -1) and displayMode < 3:
-                            drawBorder(outputImg, symbol[1], colorCode[0], 2)
-                            pt = (symbol[1][1][0]-35, symbol[1][1][1]-25)  
+                            drawBorder(outputImg, symbol, colorCode[0], 2)
+                            pt = (symbol[1][0]-35, symbol[1][1]-25)  
                             cv2.putText(outputImg, str(idx), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, colorCode[0], 2)
             
             #Bot Symbol
-            match = bot_pattern.match(symbol[0])
+            match = bot_pattern.match(content)
             if match:
                 botId = int(match.group(1))
                 if botId < 0 or Arena.numbots <=botId:
                     continue
                 bot = Arena.bot[botId]
-                bot.setData(symbol[1], z, threshImg)    #update the bot's data
+                bot.setData(symbol, z, threshImg)    #update the bot's data
                 if (display == z.id or display == -1) and displayMode < 3:
                     bot.drawOutput(outputImg)   #draw the bot's symbol
 

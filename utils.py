@@ -30,6 +30,7 @@ class DM:
         self.max_count = max_count
         self.timeout = timeout
         self.loadReader()
+        self.symbols = []   #a symbol is a list of four (x,y) points
         return
         
     def loadReader(self):
@@ -37,9 +38,10 @@ class DM:
         return
             
     def scan(self, img):
-        width = size(img, 1)
-        height = size(img, 0)
-        self.read.decode(width, height, buffer(img.tostring())) 
+        self.read.decode(size(img, 1), size(img, 0), buffer(img.tostring()))
+        self.symbols = []
+        for idx in range(1, self.read.count()+1):
+            self.symbols.append(self.read.stats(idx))
         
     def setTimeout(v):
         self.timeout = v
