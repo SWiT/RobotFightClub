@@ -1,4 +1,4 @@
-import cv2, time
+import cv2, time, subprocess
         
 class Zone:
     used_vdi = []
