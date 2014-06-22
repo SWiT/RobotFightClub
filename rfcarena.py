@@ -1,19 +1,12 @@
 import cv2, serial, sys, math, time, subprocess, os, re, Image
 from numpy import *
-from pydmtx import DataMatrix
 import arena
 from utils import *
 
 ###############
 ## FUNCTIONS
 ###############
-            
-def updateTimeout(v):
-    global dm_timeout, dm_read
-    dm_timeout = v
-    dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
-    return
-    
+               
 def updateDisplayMode():
     global displayMode
     displayMode += 1
@@ -55,7 +48,7 @@ def onMouse(event,x,y,flags,param):
     #print cv2.EVENT_LBUTTONDOWN, cv2.EVENT_RBUTTONDOWN, cv2.EVENT_MBUTTONDOWN
     #print cv2.EVENT_LBUTTONUP, cv2.EVENT_RBUTTONUP, cv2.EVENT_MBUTTONUP
     #print cv2.EVENT_LBUTTONDBLCLK, cv2.EVENT_RBUTTONDBLCLK, cv2.EVENT_MBUTTONDBLCLK
-    global cplh, menurows, exit, dm_max, dm_read, dm_timeout, display
+    global cplh, menurows, exit, display
     if event == cv2.EVENT_LBUTTONUP and flags == 1:
         rowClicked = y/cplh
         if rowClicked < len(menurows):
@@ -80,9 +73,8 @@ def onMouse(event,x,y,flags,param):
                 
             elif menurows[rowClicked] == "numbots":
                 Arena.updateNumBots()
-                dm_max = Arena.numbots + Arena.numpoi
-                dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
-        
+                dm.setMaxCount(Arena.numbots + Arena.numpoi)
+                    
             else:    
                 videoDevice_pattern = re.compile('^videoDevice(\d)$')
                 match = videoDevice_pattern.match(menurows[rowClicked])
@@ -128,12 +120,10 @@ frametime = time.time()
 fps = 0
 
 #DataMatrix  
-dm_max = Arena.numbots + Arena.numpoi; #points of interest plus the bots
-dm_timeout = 200
-dm_read = DataMatrix(max_count = dm_max, timeout = dm_timeout, shape = DataMatrix.DmtxSymbol10x10)
+dm = DM(Arena.numbots + Arena.numpoi, 200)
 
 #Control Panel
-cv2.createTrackbar('Scan (ms)', 'ArenaControlPanel', dm_timeout, 1000, updateTimeout)
+cv2.createTrackbar('Scan (ms)', 'ArenaControlPanel', dm.timeout, 1000, dm.setTimeout)
 cv2.createTrackbar('Threshold', 'ArenaControlPanel', threshold, 255, updateThreshold)
  
 poi_pattern = re.compile('^C(\d)$')
@@ -175,11 +165,11 @@ while True:
                 outputImg = origImg;
             
         #Scan for DataMatrix
-        dm_read.decode(width, height, buffer(origImg.tostring()))  
+        dm.scan(origImg)  
 
         #For each detected DataMatrix symbol
-        for dm_idx in range(1, dm_read.count()+1):
-            symbol = dm_read.stats(dm_idx)
+        for dm_idx in range(1, dm.read.count()+1):
+            symbol = dm.read.stats(dm_idx)
             
             #Arena POI/Corners
             match = poi_pattern.match(symbol[0])
@@ -201,13 +191,9 @@ while True:
                 if botId < 0 or Arena.numbots <=botId:
                     continue
                 bot = Arena.bot[botId]
-                
-                #update the bot's data
-                bot.setData(symbol[1], z, threshImg)
-
-                #draw the bot's symbol
+                bot.setData(symbol[1], z, threshImg)    #update the bot's data
                 if (display == z.id or display == -1) and displayMode < 3:
-                    bot.drawOutput(outputImg)
+                    bot.drawOutput(outputImg)   #draw the bot's symbol
 
         #Draw Objects on Scanner window if this zone is displayed
         if display == z.id or display == -1:
