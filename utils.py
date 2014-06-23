@@ -30,7 +30,7 @@ class DM:
         self.max_count = max_count
         self.timeout = timeout
         self.loadReader()
-        self.symbols = []   #a symbol is a list of four (x,y) points
+        self.symbols = []   #a symbol is a list of the content and four (x,y) points as a sub list
         return
         
     def loadReader(self):
@@ -43,12 +43,12 @@ class DM:
         for idx in range(1, self.read.count()+1):
             self.symbols.append(self.read.stats(idx))
         
-    def setTimeout(v):
+    def setTimeout(self, v):
         self.timeout = v
         self.loadReader()
         return
         
-    def setMaxCount(v):
+    def setMaxCount(self, v):
         self.max_count = v
         self.loadReader()
         return
