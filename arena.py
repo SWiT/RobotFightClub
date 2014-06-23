@@ -15,6 +15,7 @@ class Arena:
         self.videodevices = []
         self.btserialdevices = []
         self.corners = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
+        self.threshold = 150
         
         #Get lists of video and BT devices
         video_pattern = re.compile('^video(\d)$')
@@ -31,13 +32,14 @@ class Arena:
         
         self.buildZones()
         self.buildBots()
+        return
         
     def updateNumberOfZones(self):
         self.numzones += 1
         if self.numzones > len(self.videodevices):
             self.numzones = 1
         self.buildZones()
-        return 
+        return self.numzones
         
     def buildZones(self):
         self.numpoi = (self.numzones * 2) + 2 #number of poi
@@ -54,7 +56,7 @@ class Arena:
         if self.numbots > 4:
             self.numbots = 0
         self.buildBots()
-        return
+        return self.numbots
     
     def buildBots(self):
         self.bot = []
@@ -65,5 +67,9 @@ class Arena:
     
     def toggleGameOn(self):
         self.gameon = False if self.gameon else True
+        return
+        
+    def setThreshold(self, v):
+        self.threshold = v
         return
 
