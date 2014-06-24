@@ -2,9 +2,7 @@ import cv2, serial, time, os, re
 from numpy import *
 import arena,ui,dm
 from utils import *
-
-            
-    
+   
 ###############
 ## SETUP
 ###############

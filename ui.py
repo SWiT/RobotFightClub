@@ -104,6 +104,15 @@ class UI:
                                 Arena.zone[zidx].closeV4l2ucp()
                             else:
                                 Arena.zone[zidx].openV4l2ucp()
+                        return
+                        
+                    botserial_pattern = re.compile('^botserial(\d)$')
+                    match = botserial_pattern.match(self.menurows[rowClicked])
+                    if match:
+                        bidx = int(match.group(1))
+                        Arena.bot[bidx].updateSerialDevice()
+                        return
+
         return
     
     def nextrow(self):

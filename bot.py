@@ -1,10 +1,11 @@
-import time, math
+import time, math, serial
 from utils import *
 
+
 class Bot:
-    used_serialdev = []
+    used_sdi = []   #used serial device indexes
     
-    def __init__(self, idx):
+    def __init__(self, idx, serialdevices):
         self.id = idx
         self.locZonePx = (0,0)
         self.locZone = (0,0)
@@ -14,11 +15,16 @@ class Bot:
         self.symbol = None
         self.alive = False
         self.time = time.time()
-        self.serialdev = None
         self.color_dead = (0,0,255)
         self.color_alive = (29,227,245)
         self.color_detected = (0,240,0)
         self.color_roi = (127,127,127)
+        
+        self.serialdevices = serialdevices
+        self.sdi = -1
+        self.serialdevname = None
+        self.serial = None  #serial connection object
+        self.baud=115200
         return
           
     def setData(self, symbol, z, threshImg):
@@ -87,4 +93,34 @@ class Bot:
         pt1 = ((x+int(math.cos(ang)*30*3.25)), (y-int(math.sin(ang)*30*3.25)))
         cv2.line(outputImg, pt0, pt1, color, 2)
         return
+        
+    def nextAvailableDevice(self):
+        self.sdi += 1
+        if self.sdi >= len(self.btserialdevices):
+            self.sdi = -1
+        if self.sdi != -1:
+            try:
+                self.used_serialdev.index(self.vdi)
+            except ValueError:
+                return
+            self.nextAvailableDevice()
+        return
+        
+    def updateSerialDevice(self):
+        self.closeSerialDevice()
+        self.nextAvailableDevice()
+        if self.sdi != -1:
+            self.initSerialDevice()
+        return
+        
+    def initSerialDevice():
+        self.serialdevname = self.serialdevices[self.sdi]
+        self.serial = serial.Serial(port=self.serialdev, baud=self.baud)
+        return
+        
+    def closeSerialDevice():
+        self.serial.close()
+        self.serialdevname = None
+        return
+        
         

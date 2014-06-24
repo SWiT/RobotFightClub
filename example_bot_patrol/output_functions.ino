@@ -78,12 +78,5 @@ void outputHelp(){
 */
 void outputBotStatus(byte i){
   Serial.print(i);
-  Serial.print(":(");
-  Serial.print(radio.packet.robot[i].x);
-  Serial.print(",");
-  Serial.print(radio.packet.robot[i].y);
-  Serial.print(") H");
-  Serial.print(radio.packet.robot[i].heading);
-  Serial.print(" ");
-  Serial.print(radio.packet.robot[i].valid);
+  Serial.print(":()");
 }

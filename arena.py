@@ -19,17 +19,17 @@ class Arena:
         
         #Get lists of video and BT devices
         video_pattern = re.compile('^video(\d)$')
-        btserial_pattern = re.compile('^rfcomm(\d)$')
+        serial_pattern = re.compile('^rfcomm(\d)$')
         for dev in os.listdir('/dev/'):
             match = video_pattern.match(dev)
             if match:
                 self.videodevices.append('/dev/'+dev)
-            match = btserial_pattern.match(dev)
+            match = serial_pattern.match(dev)
             if match:
-                self.btserialdevices.append('/dev/'+dev)     
+                self.serialdevices.append('/dev/'+dev)     
         self.videodevices.sort()  
-        self.btserialdevices.sort()
-        
+        self.serialdevices.sort()
+        print serialdevices
         self.buildZones()
         self.buildBots()
         return
@@ -61,8 +61,7 @@ class Arena:
     def buildBots(self):
         self.bot = []
         for idx in range(0,self.numbots):
-            b = bot.Bot(idx)
-            self.bot.append(b)
+            self.bot.append(bot.Bot(idx, self.btserialdevices))
         return
     
     def toggleGameOn(self):

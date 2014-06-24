@@ -1,32 +1,27 @@
 #include "bot_id.h"
-#include <ServoTimer2.h>
-#include <VirtualWire.h>
 #include "pin_defs.h"
-#include "RKF_Radio.h"
+#include <Servo.h>
 
-ServoTimer2 LeftDrive, RightDrive;
-#define LEFT_FWD 2000
-#define LEFT_STOP 1500
-#define LEFT_REV 1000
-#define RIGHT_FWD 1000
-#define RIGHT_STOP 1500
-#define RIGHT_REV 2000
-unsigned int speed_L = LEFT_STOP;
-unsigned int speed_R = RIGHT_STOP;
+Servo LeftDrive, RightDrive;
+#define LEFT_FWD 180
+#define LEFT_STOP 90
+#define LEFT_REV 0
+#define RIGHT_FWD 0
+#define RIGHT_STOP 90
+#define RIGHT_REV 180
+unsigned byte speed_L = LEFT_STOP;
+unsigned byte speed_R = RIGHT_STOP;
 unsigned long timeLastServoUpdate = 0;
 unsigned long timeToStop = 0;
 unsigned long timeToGo = 0;
-unsigned long timeLastStatus = 0;
+unsigned long timeLastOutput = 0;
 
-RKF_Radio radio;
-extern "C" { uint8_t vw_rx_active; };
 unsigned long timeLastMessage = 0;
-unsigned long timeLastRadioAttempt = 0;
 
 String serialInputString = "";  // a string to hold incoming data
 
-RKF_Position Me;
-RKF_Position Target;
+int Me[3] = {0,0,0};
+int Target[3] = {0,0,0};
 
 int headingTo = 0;
 byte distanceTo = 0;
@@ -36,7 +31,7 @@ byte actionCount = 0;
 boolean gameOn = false;
 
 byte DestIndex = 255;
-byte Destinations[4][2] = {{8,8},{8,38},{62,38},{62,8}};
+int Destinations[4][2] = {{8,8},{8,38},{62,38},{62,8}};
 
 /*
   Setup
@@ -52,9 +47,7 @@ void setup(){
   LeftDrive.write(LEFT_STOP);
   RightDrive.write(RIGHT_STOP);
   
-  radio.start();
-  
-  serialInputString.reserve(16);
+  serialInputString.reserve(114); //28 per bot + 1 for the end char.
   Serial.begin(115200);
   Serial.println("example_bot: patrol");
   
@@ -67,37 +60,14 @@ void setup(){
   Main loop
 ------------------------------------------------------------------------------*/
 void loop(){
-  //Get Radio data if available
-  if(millis()-timeLastRadioAttempt>50){  //only check for new message every 50ms
-    Serial.print(".");
-    if(radio.recv()){  //if a radio message has been received
-      switch(radio.packet.message)  //Do stuff based on message type.  
-      {
-        case RKF_POSITION_MESSAGE:  // position message
-          timeLastMessage = millis();
-          if(radio.packet.robot[MY_BOT_ID].x>0 || radio.packet.robot[MY_BOT_ID].y>0){
-            Me = radio.packet.robot[MY_BOT_ID]; //update my location
-          }
-          Serial.print("+");
-          break;  
-      }
-    }
-    timeLastRadioAttempt = millis();
-  }
+  
   
   processSerialInput();
   
   //"Thought processes"
   //-------------------------------------------
   
-  //indicate time of last message with status LED
-  if((millis()-timeLastMessage) < 2000) {
-    digitalWrite(STATUS_LED_PIN, true); //message recieved in last 2000ms
-    gameOn = true;
-  }else{
-    digitalWrite(STATUS_LED_PIN, false);
-    gameOn = false;
-  }
+  
   if(gameOn){
     if(Me.x>0 || Me.y>0){  //if my position is valid.
       if(DestIndex==255){
@@ -217,7 +187,7 @@ int throttle(int Direction, int Stop, float Throttle){
 }
 
 byte whatPosClosest(RKF_Position p0){
-  RKF_Position p1;
+  int p1 = [];
   byte index = 0;
   byte closest = 255;
   for(byte i=0; i<4; i++){
