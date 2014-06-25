@@ -27,6 +27,8 @@ class Arena:
             match = btserial_pattern.match(dev)
             if match:
                 self.btserialdevices.append('/dev/'+dev)     
+        if len(self.videodevices) == 0:
+            raise SystemExit('No video device found. (/dev/video#)')
         self.videodevices.sort()  
         self.btserialdevices.sort()
         
