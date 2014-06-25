@@ -19,14 +19,14 @@ void outputStatus(){
   Serial.print(now-timeLastMessage);
   Serial.println();
   
-  Serial.print("Me[");
+  Serial.print("Me: ");
   Serial.print(MY_BOT_ID);
-  Serial.print("]: (");
-  Serial.print(Me.x);
+  Serial.print(" (");
+  Serial.print(Me[0]);
   Serial.print(", ");
-  Serial.print(Me.y);
+  Serial.print(Me[1]);
   Serial.print(") H");
-  Serial.print(Me.heading);
+  Serial.print(Me[2]);
   Serial.print("\tL:");
   Serial.print(speed_L);
   Serial.print("\tR:");
@@ -34,11 +34,11 @@ void outputStatus(){
   Serial.println();
   
   Serial.print("Target: (");
-  Serial.print(Target.x);
+  Serial.print(Target[0]);
   Serial.print(", ");
-  Serial.print(Target.y);
+  Serial.print(Target[1]);
   Serial.print(") H");
-  Serial.print(Target.heading);
+  Serial.print(Target[2]);
   Serial.println();
   
   Serial.print("\tdistanceTo:");

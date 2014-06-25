@@ -9,8 +9,8 @@ Servo LeftDrive, RightDrive;
 #define RIGHT_FWD 0
 #define RIGHT_STOP 90
 #define RIGHT_REV 180
-unsigned byte speed_L = LEFT_STOP;
-unsigned byte speed_R = RIGHT_STOP;
+byte speed_L = LEFT_STOP;
+byte speed_R = RIGHT_STOP;
 unsigned long timeLastServoUpdate = 0;
 unsigned long timeToStop = 0;
 unsigned long timeToGo = 0;
@@ -41,7 +41,6 @@ void setup(){
   RightDrive.attach(RIGHT_DRIVE_PIN);
   pinMode(BUMP_SWITCH_RIGHT_PIN, INPUT);
   pinMode(BUMP_SWITCH_LEFT_PIN, INPUT);
-  pinMode(DEFAULT_RX_PIN, INPUT);
   pinMode(STATUS_LED_PIN, OUTPUT);
   
   LeftDrive.write(LEFT_STOP);
@@ -69,22 +68,23 @@ void loop(){
   
   
   if(gameOn){
-    if(Me.x>0 || Me.y>0){  //if my position is valid.
+    
+    if(Me[0]>0 || Me[1]>0){  //if my position is valid.
       if(DestIndex==255){
         DestIndex = whatPosClosest(Me);
       }
     
       //what is the distance to the Target point?
-      distanceTo = byte(Me.distance(Target));
+      distanceTo = distance(Me, Target);
       
       //what is the heading to the Target point?
-      headingTo = int(16 + round( -Me.bearing(Target)/(PI/8) + (PI/16) ))%16; //convert the bearing to a heading of 0-15 increasing counter clockwise
+      headingTo = 0; //int(16 + round( -Me.bearing(Target)/(PI/8) + (PI/16) ))%16; //convert the bearing to a heading of 0-15 increasing counter clockwise
       
       //if farther than 8 inches to Target
       if(distanceTo > 8 ){
         
         //what is the rotation direction and amount needed?
-        int hdiff = (headingTo-Me.heading);
+        int hdiff = (headingTo-Me[2]);
         if (hdiff==0){
           //I'm facing the right way to the Target point
           rotAmountTo = 0;
@@ -127,8 +127,8 @@ void loop(){
       }else{
         //withinrange of the current destination, set the nest one.
         DestIndex = (DestIndex+1)%4;
-        Target.x = Destinations[DestIndex][0];
-        Target.y = Destinations[DestIndex][1];
+        Target[0] = Destinations[DestIndex][0];
+        Target[1] = Destinations[DestIndex][1];
       }
       
     } //end valid Me position
@@ -162,11 +162,11 @@ void loop(){
   }
   
   //Output various statuses and values once in a while.
-  if(millis()-timeLastStatus > 1000){
+  if(millis()-timeLastOutput > 1000){
     outputStatus();
-    timeLastStatus = millis();
+    timeLastOutput = millis();
   }
-    
+  
   delay(1);
 }
 /*----------------------------------------------------------------------------*/
@@ -186,14 +186,18 @@ int throttle(int Direction, int Stop, float Throttle){
   return int((Direction-Stop)*Throttle + Stop);
 }
 
-byte whatPosClosest(RKF_Position p0){
-  int p1 = [];
+int distance(int pt0[], int pt1[]) {
+  return sqrt(pow(pt1[0]-pt0[0],2)+pow(pt1[1]-pt0[1],2));
+}
+
+byte whatPosClosest(int p0[]){
+  int p1[2] = {0,0};
   byte index = 0;
   byte closest = 255;
   for(byte i=0; i<4; i++){
-    p1.x = Destinations[i][0];
-    p1.y = Destinations[i][1];
-    byte d = p0.distance(p1);
+    p1[0] = Destinations[i][0];
+    p1[1] = Destinations[i][1];
+    byte d = distance(p0, p1);
     if(d < closest){
       closest = d;
       index = i;
@@ -201,3 +205,4 @@ byte whatPosClosest(RKF_Position p0){
   }
   return index;
 }
+
