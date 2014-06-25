@@ -14,17 +14,18 @@ You will need:
     the printed datamatrices
 
 Install the following packages (Ubuntu):
-    sudo apt-get install git v4l2ucp  git  gcc-avr avr-libc openjdk-7-jre build-essential checkinstall cmake pkg-config yasm libtiff4-dev libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev  libxine-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy  libtbb-dev libqt4-dev libgtk2.0-dev libdmtx-utils blueman
+    sudo apt-get install git v4l2ucp  git  gcc-avr avr-libc openjdk-7-jre build-essential checkinstall cmake pkg-config yasm libtiff4-dev libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev  libxine-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy  libtbb-dev libqt4-dev libgtk2.0-dev libdmtx-utils libdmtx-dev blueman
 
 Install pydmtx:
+    cd ~
     git clone https://github.com/dmtx/dmtx-wrappers.git
     cd dmtx-wrappers/python
     sudo python setup.py install
 
 Install the lastest opencv package (2.4.8+):
-    mkdir opencv
-    cd opencv
+    cd ~
     git clone https://github.com/Itseez/opencv.git
+    cd opencv
     git checkout -b 2.4 origin/2.4
     mkdir release
     cd release

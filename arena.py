@@ -27,6 +27,8 @@ class Arena:
             match = serial_pattern.match(dev)
             if match:
                 self.serialdevices.append('/dev/'+dev)     
+        if len(self.videodevices) == 0:
+            raise SystemExit('No video device found. (/dev/video#)')
         self.videodevices.sort()  
         self.serialdevices.sort()
         print serialdevices
