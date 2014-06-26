@@ -3,6 +3,7 @@
 output important variables to the Serial port
 ------------------------------------------------------------------------------*/
 void outputStatus(){
+  //return;
   Serial.println();
   unsigned long now = millis();
   Serial.print("now:");
@@ -59,24 +60,16 @@ void outputStatus(){
         
 }
 
-
-/*
-  outputHelp
-output the help menu to the Serial port
-------------------------------------------------------------------------------*/
-void outputHelp(){
-  Serial.println("Help Menu:");
-  Serial.println("--------------------------");
-  Serial.println("'H'\tDisplay this Help Menu");
-  Serial.println("'?'\tDisplay important status variables");
-  Serial.println();
-}
-
-
 /*
   outputBotStatus
 */
 void outputBotStatus(byte i){
   Serial.print(i);
-  Serial.print(":()");
+  Serial.print(":(");
+  for (byte v=0; v<5; v++) {
+    if (v!=0) {Serial.print(",");}
+    Serial.print(Bot[i][v]);
+    
+  }
+  Serial.print(")");
 }

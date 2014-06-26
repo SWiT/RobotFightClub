@@ -22,6 +22,8 @@ String serialInputString = "";  // a string to hold incoming data
 
 int Me[3] = {0,0,0};
 int Target[3] = {0,0,0};
+int Bot[4][5] = {{0,0,0,0,0},{0,0,0,0,0},{0,0,0,0,0},{0,0,0,0,0}}; //{x, y, heading, alive, teamid}
+
 
 int headingTo = 0;
 byte distanceTo = 0;
@@ -48,10 +50,7 @@ void setup(){
   
   serialInputString.reserve(114); //28 per bot + 1 for the end char.
   Serial.begin(115200);
-  Serial.println("example_bot: patrol");
-  
-  outputHelp();
-  
+  Serial.println("\nexample_bot: patrol");
 }
 
 
@@ -78,7 +77,7 @@ void loop(){
       distanceTo = distance(Me, Target);
       
       //what is the heading to the Target point?
-      headingTo = 0; //int(16 + round( -Me.bearing(Target)/(PI/8) + (PI/16) ))%16; //convert the bearing to a heading of 0-15 increasing counter clockwise
+      headingTo = bearing(Me, Target); //int(16 + round( -Me.bearing(Target)/(PI/8) + (PI/16) ))%16; //convert the bearing to a heading of 0-15 increasing counter clockwise
       
       //if farther than 8 inches to Target
       if(distanceTo > 8 ){
@@ -96,15 +95,15 @@ void loop(){
             timeToGo = timeToStop + 900;
             actionCount++;
           }
-        }else if (hdiff < -8 || (0 < hdiff && hdiff < 8)){
+        }else if (hdiff < -180 || (0 < hdiff && hdiff < 180)){
           //Turn left
-          rotAmountTo = (16+abs(hdiff))%16;
+          rotAmountTo = (360+abs(hdiff))%360;
           if (rotAmountTo > 0){
             //turn left then wait a little bit
-            if(timeToStop == 0 and timeToGo<millis()){
+            if(timeToStop == 0 and timeToGo < millis()){
               speed_L = throttle(LEFT_REV, LEFT_STOP, 0.1);
               speed_R = throttle(RIGHT_FWD, RIGHT_STOP, 0.1);
-              timeToStop = millis() + (50*rotAmountTo);
+              timeToStop = millis() + (2*rotAmountTo);
               timeToGo = timeToStop + 900;
               actionCount++;
             }
@@ -112,13 +111,13 @@ void loop(){
           
         }else{
           //Turn right
-          rotAmountTo = (16-abs(hdiff))%16;
+          rotAmountTo = (360-abs(hdiff))%360;
           if (rotAmountTo > 0){
             //turn right then wait a little bit
-            if(timeToStop == 0 and timeToGo<millis()){
+            if(timeToStop == 0 and timeToGo < millis()){
               speed_L = throttle(LEFT_FWD, LEFT_STOP, 0.1);
               speed_R = throttle(RIGHT_REV, RIGHT_STOP, 0.1);
-              timeToStop = millis() + (50*rotAmountTo);
+              timeToStop = millis() + (2*rotAmountTo);
               timeToGo = timeToStop + 900;
               actionCount++;
             }
@@ -162,7 +161,7 @@ void loop(){
   }
   
   //Output various statuses and values once in a while.
-  if(millis()-timeLastOutput > 1000){
+  if(millis()-timeLastOutput > 3000){
     outputStatus();
     timeLastOutput = millis();
   }
@@ -188,6 +187,10 @@ int throttle(int Direction, int Stop, float Throttle){
 
 int distance(int pt0[], int pt1[]) {
   return sqrt(pow(pt1[0]-pt0[0],2)+pow(pt1[1]-pt0[1],2));
+}
+
+int bearing(int pt0[], int pt1[]) {
+  return atan2((pt1[1] - pt0[1]),(pt1[0] - pt0[0]))*180/PI;
 }
 
 byte whatPosClosest(int p0[]){
