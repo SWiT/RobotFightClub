@@ -44,9 +44,9 @@ class UI:
         return
     
     def updateDisplaySize(self):
-        self.displaySize += 25
+        self.displaySize += 10
         if self.displaySize > 100:
-            self.displaySize = 25
+            self.displaySize = 50
         return
         
     def menuSpacer(self):
@@ -199,7 +199,7 @@ class UI:
             self.menurows.append("bot"+str(bot.id))
             self.nextrow()
             
-            output = str(bot.serialdev)
+            output = str(bot.serialdevname)
             cv2.putText(controlPanelImg, output, (self.pt[0]+25,self.pt[1]), cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
             self.menurows.append("botserial"+str(bot.id))
             self.nextrow()

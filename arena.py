@@ -13,7 +13,7 @@ class Arena:
         self.bot = []
         self.gameon = False
         self.videodevices = []
-        self.btserialdevices = []
+        self.serialdevices = []
         self.corners = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
         self.threshold = 150
         
@@ -31,7 +31,7 @@ class Arena:
             raise SystemExit('No video device found. (/dev/video#)')
         self.videodevices.sort()  
         self.serialdevices.sort()
-        print serialdevices
+        print self.serialdevices
         self.buildZones()
         self.buildBots()
         return
@@ -63,7 +63,7 @@ class Arena:
     def buildBots(self):
         self.bot = []
         for idx in range(0,self.numbots):
-            self.bot.append(bot.Bot(idx, self.btserialdevices))
+            self.bot.append(bot.Bot(idx, self.serialdevices))
         return
     
     def toggleGameOn(self):
