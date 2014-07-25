@@ -62,7 +62,7 @@ class UI:
         #print event,x,y,flags
         Arena = param[0]
         dm = param[1]
-        if event == cv2.EVENT_LBUTTONUP and flags == 1:
+        if event == cv2.EVENT_LBUTTONUP:
             rowClicked = y/self.lh
             if rowClicked < len(self.menurows):
                 if self.menurows[rowClicked] == "zones":
