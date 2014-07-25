@@ -6,7 +6,7 @@ class Arena:
     def __init__(self):
         self.numzones = 1    #number of Zones
         self.numpoi = 4      #number of POI
-        self.numbots = 1     #number of bots
+        self.numbots = 2     #number of bots
         self.x = 0           #maximum X value
         self.y = 0           #maximum Y value
         self.zone = []
