@@ -30,7 +30,7 @@ class Zone:
     def nextAvailableDevice(self):
         self.vdi += 1
         if self.vdi >= len(self.videodevices):
-            self.vdi = -1
+            self.vdi = 0
         if self.vdi != -1:
             try:
                 self.used_vdi.index(self.vdi)
@@ -42,7 +42,7 @@ class Zone:
     def updateVideoDevice(self):
         self.close()
         self.nextAvailableDevice()
-        if self.vdi != -1:
+        if self.vdi > -1:
             self.initVideoDevice()
         else:
             self.close()    

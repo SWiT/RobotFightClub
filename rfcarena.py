@@ -25,6 +25,8 @@ cv2.createTrackbar('Scan (ms)', 'ArenaControlPanel', dm.timeout, 1000, dm.setTim
 cv2.createTrackbar('Threshold', 'ArenaControlPanel', Arena.threshold, 255, Arena.setThreshold)
 cv2.setMouseCallback("ArenaControlPanel", ui.onMouse, (Arena,dm))
 
+cornerSize = 4.1875
+
 ###############
 ## LOOP
 ###############
@@ -57,6 +59,11 @@ while True:
                 outputImg = origImg;
             
         #Scan for DataMatrix
+        #xmin = z.poi[0][0] if z.poi[0][0] < z.poi[3][0] else z.poi[3][0]
+        #xmax = z.poi[1][0] if z.poi[1][0] > z.poi[2][0] else z.poi[2][0]
+        #ymax = z.poi[0][1] if z.poi[0][1] > z.poi[1][1] else z.poi[1][1]
+        #ymin = z.poi[2][1] if z.poi[2][1] < z.poi[3][1] else z.poi[3][1]
+        #dm.scan(origImg[xmin:xmax,ymin:ymax])  
         dm.scan(origImg)  
 
         #For each detected DataMatrix symbol
@@ -68,6 +75,16 @@ while True:
                 for idx,poival in enumerate(z.poisymbol):
                     if sval == poival:
                         z.poi[idx] = symbol[idx]
+                        offset = (symbol[1][0]-symbol[0][0])/10 + 2
+                        if idx == 0:
+                            z.poi[idx] = (z.poi[idx][0] - offset, z.poi[idx][1] + offset)
+                        elif idx == 1:
+                            z.poi[idx] = (z.poi[idx][0] + offset, z.poi[idx][1] + offset)
+                        elif idx == 2:
+                            z.poi[idx] = (z.poi[idx][0] + offset, z.poi[idx][1] - offset)
+                        elif idx == 3:
+                            z.poi[idx] = (z.poi[idx][0] - offset, z.poi[idx][1] - offset)
+
                         z.poitime[idx] = time.time()
                         if ui.isDisplayed(z.id) and ui.displayMode < 3:
                             drawBorder(outputImg, symbol, ui.COLOR_BLUE, 2)
@@ -107,7 +124,7 @@ while True:
         if ui.display == -1:
             if allImg is None or z.id == 0: #not set or first
                 allImg = zeros((height, width*Arena.numzones, 3), uint8)
-                
+            #print z.id, height, width, Arena.numzones
             allImg[0:height, (z.id*width):((z.id+1)*width)] = outputImg
             if z.id+1 == len(Arena.zone):   #last
                 outputImg = allImg
