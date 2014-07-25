@@ -7,6 +7,7 @@ class Bot:
     
     def __init__(self, idx, serialdevices):
         self.id = idx
+        self.zid = 0
         self.locZonePx = (0,0)
         self.locZone = (0,0)
         self.locArena = (0,0)
@@ -30,7 +31,8 @@ class Bot:
     def setData(self, symbol, z, threshImg):
         self.time = time.time()
         self.symbol = symbol
-        
+        self.zid = z.id
+
         #update the bot's location
         self.locZonePx = findCenter(self.symbol)
         wallCenterX = findCenter([z.poi[1],z.poi[0]])
@@ -78,7 +80,7 @@ class Bot:
         cv2.line(outputImg, pt0, pt1, self.color_detected, 2)
         return
         
-    def drawLastKnowLoc(self, outputImg):
+    def drawLastKnownLoc(self, outputImg):
         x,y = self.locZonePx
         if x == 0 and y == 0:
             return

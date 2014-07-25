@@ -72,7 +72,7 @@ while True:
                         if ui.isDisplayed(z.id) and ui.displayMode < 3:
                             drawBorder(outputImg, symbol, ui.COLOR_BLUE, 2)
                             pt = (symbol[1][0]-35, symbol[1][1]-25)  
-                            cv2.putText(outputImg, str(idx), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, ui.COLOR_BLUE, 2)
+                            cv2.putText(outputImg, str(sval), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, ui.COLOR_BLUE, 2)
             
             #Bot Symbol
             match = bot_pattern.match(content)
@@ -100,7 +100,8 @@ while True:
 
             #Last Known Bot Locations
             for bot in Arena.bot:
-                bot.drawLastKnowLoc(outputImg)
+                if bot.zid == z.id:                
+                    bot.drawLastKnownLoc(outputImg)
         
         #Merge images if Display: All
         if ui.display == -1:

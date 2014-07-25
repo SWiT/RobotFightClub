@@ -15,7 +15,7 @@ class Zone:
         self.v4l2ucp = -1
         self.cap = -1        #capture device object (OpenCV)
         self.resolutions = [(640,480),(1280,720),(1920,1080)]
-        self.ri = 0          #selected Resolution Index
+        self.ri = 1          #selected Resolution Index
         self.poisymbol[0] = idx
         self.poisymbol[1] = idx + 1
         self.poisymbol[2] = npoi - idx - 2
