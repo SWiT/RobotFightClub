@@ -31,7 +31,7 @@ class Arena:
             raise SystemExit('No video device found. (/dev/video#)')
         self.videodevices.sort()  
         self.serialdevices.sort()
-        #print self.serialdevices
+        print self.serialdevices
         self.buildZones()
         self.buildBots()
         return

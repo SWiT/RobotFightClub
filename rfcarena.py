@@ -124,8 +124,9 @@ while True:
         if ui.display == -1:
             if allImg is None or z.id == 0: #not set or first
                 allImg = zeros((height, width*Arena.numzones, 3), uint8)
-            #print z.id, height, width, Arena.numzones
-            allImg[0:height, (z.id*width):((z.id+1)*width)] = outputImg
+            #print z.id, height, width, Arena.numzones, size(outputImg,0), size(outputImg,1)
+            if size(outputImg,0) == height and size(outputImg,1) == width:
+                allImg[0:height, (z.id*width):((z.id+1)*width)] = outputImg
             if z.id+1 == len(Arena.zone):   #last
                 outputImg = allImg
                            
