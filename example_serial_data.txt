@@ -1,0 +1,26 @@
+//Example Messages
+
+//All bot statuses
+$W\n
+{0:[[x, y, heading, alive, botid, teamid],...]}
+{0:[[0,0,0,0,0,0],[0,0,0,0,1,1],[0,0,0,0,2,2],[0,0,0,0,3,3]]}
+
+//Game Statuses
+$G\n
+{1:[gameon]}
+{1:[0]}
+
+//Single bot status
+$W#\n
+{2:[x, y, heading, alive, botid, teamid]}
+$W0\n
+{2:[0,0,0,0,0,0]}
+
+//A message has 140 char limit, no :, {, }, [, ], or \n allowed.
+//Get Messages
+$M\n
+{3:[[from, message, timesent],...]}   
+{3:[[1, 123456, help me],[2, 123490, attack 3]]}
+
+//Send Message
+$M#:message\n

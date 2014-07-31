@@ -6,32 +6,32 @@ class Arena:
     def __init__(self):
         self.numzones = 1    #number of Zones
         self.numpoi = 4      #number of POI
-        self.numbots = 1     #number of bots
+        self.numbots = 2     #number of bots
         self.x = 0           #maximum X value
         self.y = 0           #maximum Y value
         self.zone = []
         self.bot = []
         self.gameon = False
         self.videodevices = []
-        self.btserialdevices = []
+        self.serialdevices = []
         self.corners = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
         self.threshold = 150
         
         #Get lists of video and BT devices
         video_pattern = re.compile('^video(\d)$')
-        btserial_pattern = re.compile('^rfcomm(\d)$')
+        serial_pattern = re.compile('^rfcomm(\d)$')
         for dev in os.listdir('/dev/'):
             match = video_pattern.match(dev)
             if match:
                 self.videodevices.append('/dev/'+dev)
-            match = btserial_pattern.match(dev)
+            match = serial_pattern.match(dev)
             if match:
-                self.btserialdevices.append('/dev/'+dev)     
+                self.serialdevices.append('/dev/'+dev)     
         if len(self.videodevices) == 0:
             raise SystemExit('No video device found. (/dev/video#)')
         self.videodevices.sort()  
-        self.btserialdevices.sort()
-        
+        self.serialdevices.sort()
+        #print self.serialdevices
         self.buildZones()
         self.buildBots()
         return
@@ -63,8 +63,7 @@ class Arena:
     def buildBots(self):
         self.bot = []
         for idx in range(0,self.numbots):
-            b = bot.Bot(idx)
-            self.bot.append(b)
+            self.bot.append(bot.Bot(idx, self.serialdevices))
         return
     
     def toggleGameOn(self):

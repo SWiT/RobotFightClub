@@ -3,6 +3,7 @@
 output important variables to the Serial port
 ------------------------------------------------------------------------------*/
 void outputStatus(){
+  //return;
   Serial.println();
   unsigned long now = millis();
   Serial.print("now:");
@@ -19,14 +20,14 @@ void outputStatus(){
   Serial.print(now-timeLastMessage);
   Serial.println();
   
-  Serial.print("Me[");
+  Serial.print("Me: ");
   Serial.print(MY_BOT_ID);
-  Serial.print("]: (");
-  Serial.print(Me.x);
+  Serial.print(" (");
+  Serial.print(Me[0]);
   Serial.print(", ");
-  Serial.print(Me.y);
+  Serial.print(Me[1]);
   Serial.print(") H");
-  Serial.print(Me.heading);
+  Serial.print(Me[2]);
   Serial.print("\tL:");
   Serial.print(speed_L);
   Serial.print("\tR:");
@@ -34,11 +35,11 @@ void outputStatus(){
   Serial.println();
   
   Serial.print("Target: (");
-  Serial.print(Target.x);
+  Serial.print(Target[0]);
   Serial.print(", ");
-  Serial.print(Target.y);
+  Serial.print(Target[1]);
   Serial.print(") H");
-  Serial.print(Target.heading);
+  Serial.print(Target[2]);
   Serial.println();
   
   Serial.print("\tdistanceTo:");
@@ -59,31 +60,16 @@ void outputStatus(){
         
 }
 
-
-/*
-  outputHelp
-output the help menu to the Serial port
-------------------------------------------------------------------------------*/
-void outputHelp(){
-  Serial.println("Help Menu:");
-  Serial.println("--------------------------");
-  Serial.println("'H'\tDisplay this Help Menu");
-  Serial.println("'?'\tDisplay important status variables");
-  Serial.println();
-}
-
-
 /*
   outputBotStatus
 */
 void outputBotStatus(byte i){
   Serial.print(i);
   Serial.print(":(");
-  Serial.print(radio.packet.robot[i].x);
-  Serial.print(",");
-  Serial.print(radio.packet.robot[i].y);
-  Serial.print(") H");
-  Serial.print(radio.packet.robot[i].heading);
-  Serial.print(" ");
-  Serial.print(radio.packet.robot[i].valid);
+  for (byte v=0; v<5; v++) {
+    if (v!=0) {Serial.print(",");}
+    Serial.print(Bot[i][v]);
+    
+  }
+  Serial.print(")");
 }

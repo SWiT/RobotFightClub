@@ -8,14 +8,18 @@ class Zone:
         self.videodevices = videodevices
         self.actualsize = (70.5, 46.5) #zone size in inches
         self.poisymbol = [-1,-1,-1,-1]
-        self.poi = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
         self.poitime = [time.time(), time.time(), time.time(), time.time()] 
         self.xoffset = 0
         self.yoffset = 0 
         self.v4l2ucp = -1
         self.cap = -1        #capture device object (OpenCV)
         self.resolutions = [(640,480),(1280,720),(1920,1080)]
-        self.ri = 0          #selected Resolution Index
+        self.ri = 1          #selected Resolution Index
+        
+        x = self.resolutions[self.ri][0]
+        y = self.resolutions[self.ri][1]
+        self.poi = [(0,y),(x,y),(x,0),(0,0)]
+
         self.poisymbol[0] = idx
         self.poisymbol[1] = idx + 1
         self.poisymbol[2] = npoi - idx - 2
@@ -26,7 +30,7 @@ class Zone:
     def nextAvailableDevice(self):
         self.vdi += 1
         if self.vdi >= len(self.videodevices):
-            self.vdi = -1
+            self.vdi = 0
         if self.vdi != -1:
             try:
                 self.used_vdi.index(self.vdi)
@@ -38,7 +42,7 @@ class Zone:
     def updateVideoDevice(self):
         self.close()
         self.nextAvailableDevice()
-        if self.vdi != -1:
+        if self.vdi > -1:
             self.initVideoDevice()
         else:
             self.close()    

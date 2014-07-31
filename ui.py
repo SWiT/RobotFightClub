@@ -16,7 +16,7 @@ class UI:
         self.pt = (0,self.lh) #control panel current text output position    
         self.menurows = []
         self.display = 0
-        self.displaySize = 100
+        self.displaySize = 50
         self.displayMode = 1
         self.numzones = 1
         self.frametime = time.time()
@@ -37,16 +37,16 @@ class UI:
         if v is not None:
             self.display = v
         else:
-            print self.display, self.numzones
+            #print self.display, self.numzones
             self.display += 1
             if self.display >= self.numzones:
                 self.display = -1
         return
     
     def updateDisplaySize(self):
-        self.displaySize += 25
+        self.displaySize += 10
         if self.displaySize > 100:
-            self.displaySize = 25
+            self.displaySize = 50
         return
         
     def menuSpacer(self):
@@ -62,7 +62,7 @@ class UI:
         #print event,x,y,flags
         Arena = param[0]
         dm = param[1]
-        if event == cv2.EVENT_LBUTTONUP and flags == 1:
+        if event == cv2.EVENT_LBUTTONUP:
             rowClicked = y/self.lh
             if rowClicked < len(self.menurows):
                 if self.menurows[rowClicked] == "zones":
@@ -104,6 +104,15 @@ class UI:
                                 Arena.zone[zidx].closeV4l2ucp()
                             else:
                                 Arena.zone[zidx].openV4l2ucp()
+                        return
+                        
+                    botserial_pattern = re.compile('^botserial(\d)$')
+                    match = botserial_pattern.match(self.menurows[rowClicked])
+                    if match:
+                        bidx = int(match.group(1))
+                        Arena.bot[bidx].updateSerialDevice()
+                        return
+
         return
     
     def nextrow(self):
@@ -190,7 +199,7 @@ class UI:
             self.menurows.append("bot"+str(bot.id))
             self.nextrow()
             
-            output = str(bot.serialdev)
+            output = str(bot.serialdevname)
             cv2.putText(controlPanelImg, output, (self.pt[0]+25,self.pt[1]), cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
             self.menurows.append("botserial"+str(bot.id))
             self.nextrow()
@@ -221,3 +230,4 @@ class UI:
             r = float(self.displaySize)/100
             img = cv2.resize(img, (0,0), fx=r, fy=r)
         return img
+

@@ -22,7 +22,7 @@ Install pydmtx:
     cd dmtx-wrappers/python
     sudo python setup.py install
 
-Install the lastest opencv package (2.4.8+):
+Install the lastest opencv package (2.4.9+):
     cd ~
     git clone https://github.com/Itseez/opencv.git
     cd opencv
@@ -40,6 +40,7 @@ Give permission for the Arduino IDE to access the serial ports:
     sudo adduser $USER dialout
 
 Download or Clone the RobotKnifeFight code from github:
+    cd ~
     git clone git@github.com:SWiT/RobotFightClubArena.git
 
 Run the Arena server:
