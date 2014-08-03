@@ -16,7 +16,7 @@ cv2.startWindowThread()
 allImg = None
 
 #DataMatrix  
-dm = dm.DM(Arena.numbots + Arena.numpoi, 200)
+dm = dm.DM((Arena.numbots + Arena.numpoi + (Arena.numzones-1)*2), 200)
 
 poi_pattern = re.compile('^C(\d)$')
 bot_pattern = re.compile('^(\d{2})$')
@@ -26,6 +26,7 @@ cv2.createTrackbar('Threshold', 'ArenaControlPanel', Arena.threshold, 255, Arena
 cv2.setMouseCallback("ArenaControlPanel", ui.onMouse, (Arena,dm))
 
 cornerSize = 4.1875
+gap = 1.625
 
 ###############
 ## LOOP
@@ -75,16 +76,72 @@ while True:
                 for idx,poival in enumerate(z.poisymbol):
                     if sval == poival:
                         z.poi[idx] = symbol[idx]
-                        offset = (symbol[1][0]-symbol[0][0])/10 + 2
+                        
+                        offset = int(gap * (symbol[1][0]-symbol[0][0]) / cornerSize)
+                        scanarea_offset_scalar = 1.3
                         if idx == 0:
                             z.poi[idx] = (z.poi[idx][0] - offset, z.poi[idx][1] + offset)
+                            if Arena.numzones > 1 and z.id == 1:
+                                x = 0
+                            elif z.poi[0][0] < z.poi[3][0]:
+                                x = z.poi[0][0] - int(offset * scanarea_offset_scalar)
+                            else:
+                                x = z.poi[3][0] - int(offset * scanarea_offset_scalar)
+                                
+                            if z.poi[0][1] > z.poi[1][1]:
+                                y = z.poi[0][1] + int(offset * scanarea_offset_scalar)
+                            else:
+                                y = z.poi[1][1] + int(offset * scanarea_offset_scalar)
+                            
                         elif idx == 1:
                             z.poi[idx] = (z.poi[idx][0] + offset, z.poi[idx][1] + offset)
+                            if Arena.numzones > 1 and z.id == 0:
+                                x = width
+                            elif z.poi[1][0] < z.poi[2][0]:
+                                x = z.poi[2][0] + int(offset * scanarea_offset_scalar)
+                            else:
+                                x = z.poi[1][0] + int(offset * scanarea_offset_scalar)
+                                
+                            if z.poi[1][1] > z.poi[0][1]:
+                                y = z.poi[1][1] + int(offset * scanarea_offset_scalar)
+                            else:
+                                y = z.poi[0][1] + int(offset * scanarea_offset_scalar)
+                            
                         elif idx == 2:
                             z.poi[idx] = (z.poi[idx][0] + offset, z.poi[idx][1] - offset)
+                            if Arena.numzones > 1 and z.id == 0:
+                                x = width
+                            elif z.poi[2][0] < z.poi[1][0]:
+                                x = z.poi[1][0] + int(offset * scanarea_offset_scalar)
+                            else:
+                                x = z.poi[2][0] + int(offset * scanarea_offset_scalar)
+                                
+                            if z.poi[2][1] > z.poi[3][1]:
+                                y = z.poi[3][1] - int(offset * scanarea_offset_scalar)
+                            else:
+                                y = z.poi[2][1] - int(offset * scanarea_offset_scalar)
+                            
                         elif idx == 3:
                             z.poi[idx] = (z.poi[idx][0] - offset, z.poi[idx][1] - offset)
-
+                            if Arena.numzones > 1 and z.id == 1:
+                                x = 0
+                            elif z.poi[3][0] < z.poi[0][0]:
+                                x = z.poi[3][0] - int(offset * scanarea_offset_scalar)
+                            else:
+                                x = z.poi[0][0] - int(offset * scanarea_offset_scalar)
+                                
+                            if z.poi[3][1] > z.poi[2][1]:
+                                y = z.poi[2][1] - int(offset * scanarea_offset_scalar)
+                            else:
+                                y = z.poi[3][1] - int(offset * scanarea_offset_scalar)
+                                
+                        if x > width:
+                            x = width
+                        if y > height:
+                            y = height
+                        
+                        z.scanarea[idx] = (x, y)
+                        
                         z.poitime[idx] = time.time()
                         if ui.isDisplayed(z.id) and ui.displayMode < 3:
                             drawBorder(outputImg, symbol, ui.COLOR_BLUE, 2)
@@ -113,7 +170,10 @@ while True:
             cv2.line(outputImg, pt0, pt1, ui.COLOR_PURPLE, 1)
             
             #Zone edges
-            drawBorder(outputImg, z.poi, ui.COLOR_BLUE, 2)  
+            drawBorder(outputImg, z.poi, ui.COLOR_BLUE, 2)
+            
+            #Scan Area edges
+            drawBorder(outputImg, z.scanarea, ui.COLOR_LBLUE, 2)
 
             #Last Known Bot Locations
             for bot in Arena.bot:
@@ -129,8 +189,31 @@ while True:
                 allImg[0:height, (z.id*width):((z.id+1)*width)] = outputImg
             if z.id+1 == len(Arena.zone):   #last
                 outputImg = allImg
-                           
-
+    
+    #End of zone loop
+    
+    #Read from each bots serial device
+    for bot in Arena.bot:                   
+        if bot.sdi != -1:
+            data = bot.serial.readline()            
+            if data.strip() == "$W":
+                reply = "{0:["
+                #{0:[[x, y, heading, alive, botid, teamid],...]}
+                for sbot in Arena.bot:
+                    reply += "["
+                    reply += str(sbot.locZone[0])
+                    reply += ","+str(sbot.locZone[1])
+                    reply += ","+str(sbot.heading)
+                    reply += ","+str(sbot.alive)
+                    reply += ","+str(sbot.id)
+                    reply += ","+str(sbot.id)
+                    reply += "]"
+                reply += "]}\n"
+                print reply.strip()
+                bot.serial.write(reply)
+            else:
+                print "'"+data.strip()+"'"
+            
     controlPanelImg = ui.drawControlPanel(Arena)
 
     outputImg = ui.resize(outputImg)

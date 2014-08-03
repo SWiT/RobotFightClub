@@ -5,6 +5,7 @@ class UI:
     def __init__(self):
         self.COLOR_WHITE = (255,255,255)
         self.COLOR_BLUE = (255,0,0)
+        self.COLOR_LBLUE = (255, 200, 100)
         self.COLOR_GREEN = (0,240,0)
         self.COLOR_RED = (0,0,255)
         self.COLOR_YELLOW = (29,227,245)
@@ -86,7 +87,7 @@ class UI:
                     
                 elif self.menurows[rowClicked] == "numbots":
                     Arena.updateNumBots()
-                    dm.setMaxCount(Arena.numbots + Arena.numpoi)
+                    dm.setMaxCount(Arena.numbots + Arena.numpoi + (Arena.numzones-1)*2)
                         
                 else:    
                     videoDevice_pattern = re.compile('^videoDevice(\d)$')

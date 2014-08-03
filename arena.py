@@ -44,7 +44,7 @@ class Arena:
         return self.numzones
         
     def buildZones(self):
-        self.numpoi = (self.numzones * 2) + 2 #number of poi
+        self.numpoi = (self.numzones * 4) #total number of poi in the arena
         for z in self.zone:
             z.close()
             z.used_vdi = []

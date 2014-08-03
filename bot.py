@@ -1,4 +1,4 @@
-import time, math, serial
+import time, math, serial, re, os
 from utils import *
 
 
@@ -22,12 +22,23 @@ class Bot:
         self.color_roi = (127,127,127)
         
         self.serialdevices = serialdevices
+
         self.sdi = -1
         self.serialdevname = None
         self.serial = None  #serial connection object
-        self.baud=115200
+        self.baudrate=115200
         return
-          
+
+    
+    def getSerialdevices(self):
+        #Get lists ofserial devices
+        serial_pattern = re.compile('^rfcomm(\d)$')
+        for dev in os.listdir('/dev/'):
+            match = serial_pattern.match(dev)
+            if match:
+                self.serialdevices.append('/dev/'+dev)
+
+
     def setData(self, symbol, z, threshImg):
         self.time = time.time()
         self.symbol = symbol
@@ -43,6 +54,7 @@ class Bot:
             zoneX = int(float(self.locZonePx[0]-wallCenterY[0])/float(maxX)*z.actualsize[0])
             zoneY = int(float(self.locZonePx[1]-wallCenterX[1])/float(maxY)*z.actualsize[1])
             self.locZone = (zoneX, zoneY)
+            #set Arena location
             
         #update the bot's heading
         x = self.symbol[3][0] - self.symbol[0][0]
@@ -98,31 +110,38 @@ class Bot:
         
     def nextAvailableDevice(self):
         self.sdi += 1
-        if self.sdi >= len(self.btserialdevices):
+        if self.sdi >= len(self.serialdevices):
             self.sdi = -1
         if self.sdi != -1:
             try:
-                self.used_serialdev.index(self.vdi)
+                self.used_sdi.index(self.sdi)
             except ValueError:
                 return
             self.nextAvailableDevice()
         return
         
     def updateSerialDevice(self):
-        self.closeSerialDevice()
+        if self.sdi != -1:
+            self.closeSerialDevice()
+        self.getSerialdevices()
         self.nextAvailableDevice()
         if self.sdi != -1:
             self.initSerialDevice()
         return
         
-    def initSerialDevice():
+    def initSerialDevice(self):
         self.serialdevname = self.serialdevices[self.sdi]
-        self.serial = serial.Serial(port=self.serialdev, baud=self.baud)
+        self.serial = serial.Serial(port=self.serialdevname, baudrate=self.baudrate, timeout=100)
+        self.used_sdi.append(self.sdi)
         return
         
-    def closeSerialDevice():
+    def closeSerialDevice(self):
         self.serial.close()
         self.serialdevname = None
+        try:
+            self.used_sdi.remove(self.sdi)
+        except ValueError:
+            pass
         return
         
         

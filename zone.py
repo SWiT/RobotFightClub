@@ -6,7 +6,7 @@ class Zone:
         self.id = idx
         self.vdi = idx
         self.videodevices = videodevices
-        self.actualsize = (70.5, 46.5) #zone size in inches
+        self.actualsize = (72, 48) #zone size in inches
         self.poisymbol = [-1,-1,-1,-1]
         self.poitime = [time.time(), time.time(), time.time(), time.time()] 
         self.xoffset = 0
@@ -19,11 +19,12 @@ class Zone:
         x = self.resolutions[self.ri][0]
         y = self.resolutions[self.ri][1]
         self.poi = [(0,y),(x,y),(x,0),(0,0)]
+        self.scanarea = [(0,y),(x,y),(x,0),(0,0)]
 
-        self.poisymbol[0] = idx
-        self.poisymbol[1] = idx + 1
-        self.poisymbol[2] = npoi - idx - 2
-        self.poisymbol[3] = npoi - idx - 1
+        self.poisymbol[0] = idx*4
+        self.poisymbol[1] = idx*4 + 1
+        self.poisymbol[2] = idx*4 + 2
+        self.poisymbol[3] = idx*4 + 3
         self.initVideoDevice()
         return
     
