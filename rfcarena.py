@@ -60,12 +60,14 @@ while True:
                 outputImg = origImg;
             
         #Scan for DataMatrix
+        dm.scan(origImg)
+        
         #xmin = z.poi[0][0] if z.poi[0][0] < z.poi[3][0] else z.poi[3][0]
         #xmax = z.poi[1][0] if z.poi[1][0] > z.poi[2][0] else z.poi[2][0]
         #ymax = z.poi[0][1] if z.poi[0][1] > z.poi[1][1] else z.poi[1][1]
         #ymin = z.poi[2][1] if z.poi[2][1] < z.poi[3][1] else z.poi[3][1]
         #dm.scan(origImg[xmin:xmax,ymin:ymax])  
-        dm.scan(origImg)  
+        
 
         #For each detected DataMatrix symbol
         for content,symbol in dm.symbols:
@@ -79,62 +81,30 @@ while True:
                         
                         offset = int(gap * (symbol[1][0]-symbol[0][0]) / cornerSize)
                         scanarea_offset_scalar = 1.3
-                        if idx == 0:
-                            z.poi[idx] = (z.poi[idx][0] - offset, z.poi[idx][1] + offset)
-                            if Arena.numzones > 1 and z.id == 1:
-                                x = 0
-                            elif z.poi[0][0] < z.poi[3][0]:
-                                x = z.poi[0][0] - int(offset * scanarea_offset_scalar)
-                            else:
-                                x = z.poi[3][0] - int(offset * scanarea_offset_scalar)
-                                
-                            if z.poi[0][1] > z.poi[1][1]:
-                                y = z.poi[0][1] + int(offset * scanarea_offset_scalar)
-                            else:
-                                y = z.poi[1][1] + int(offset * scanarea_offset_scalar)
+                    
+                        offset_x_sign = 1 if (idx%3 != 0) else -1
+                        offset_y_sign = 1 if (idx < 2) else -1
+                        
+                        z.poi[idx] = (z.poi[idx][0] + offset_x_sign * offset, z.poi[idx][1] + offset_y_sign * offset)
+                        x_op_idx = abs(idx - 3)
+                        y_op_idx = abs(idx - 5)%4
+                        outcome_true_x_idx = idx if (idx%3 == 0) else x_op_idx
+                        outcome_false_x_idx = idx if not (idx%3 == 0) else x_op_idx
+                        outcome_true_y_idx = idx if (idx < 2) else y_op_idx
+                        outcome_false_y_idx = idx if not (idx < 2) else y_op_idx
+                        
+                        if Arena.numzones > 1 and z.id == int(idx%3==0):
+                            x = 0 if (idx%3==0) else width
+                        elif z.poi[idx][0] < z.poi[x_op_idx][0]:
+                            x = z.poi[outcome_true_x_idx][0] + int(offset_x_sign * offset * scanarea_offset_scalar)
+                        else:
+                            x = z.poi[outcome_false_x_idx][0] + int(offset_x_sign * offset * scanarea_offset_scalar)
                             
-                        elif idx == 1:
-                            z.poi[idx] = (z.poi[idx][0] + offset, z.poi[idx][1] + offset)
-                            if Arena.numzones > 1 and z.id == 0:
-                                x = width
-                            elif z.poi[1][0] < z.poi[2][0]:
-                                x = z.poi[2][0] + int(offset * scanarea_offset_scalar)
-                            else:
-                                x = z.poi[1][0] + int(offset * scanarea_offset_scalar)
-                                
-                            if z.poi[1][1] > z.poi[0][1]:
-                                y = z.poi[1][1] + int(offset * scanarea_offset_scalar)
-                            else:
-                                y = z.poi[0][1] + int(offset * scanarea_offset_scalar)
-                            
-                        elif idx == 2:
-                            z.poi[idx] = (z.poi[idx][0] + offset, z.poi[idx][1] - offset)
-                            if Arena.numzones > 1 and z.id == 0:
-                                x = width
-                            elif z.poi[2][0] < z.poi[1][0]:
-                                x = z.poi[1][0] + int(offset * scanarea_offset_scalar)
-                            else:
-                                x = z.poi[2][0] + int(offset * scanarea_offset_scalar)
-                                
-                            if z.poi[2][1] > z.poi[3][1]:
-                                y = z.poi[3][1] - int(offset * scanarea_offset_scalar)
-                            else:
-                                y = z.poi[2][1] - int(offset * scanarea_offset_scalar)
-                            
-                        elif idx == 3:
-                            z.poi[idx] = (z.poi[idx][0] - offset, z.poi[idx][1] - offset)
-                            if Arena.numzones > 1 and z.id == 1:
-                                x = 0
-                            elif z.poi[3][0] < z.poi[0][0]:
-                                x = z.poi[3][0] - int(offset * scanarea_offset_scalar)
-                            else:
-                                x = z.poi[0][0] - int(offset * scanarea_offset_scalar)
-                                
-                            if z.poi[3][1] > z.poi[2][1]:
-                                y = z.poi[2][1] - int(offset * scanarea_offset_scalar)
-                            else:
-                                y = z.poi[3][1] - int(offset * scanarea_offset_scalar)
-                                
+                        if z.poi[idx][1] > z.poi[y_op_idx][1]:
+                            y = z.poi[outcome_true_y_idx][1] + int(offset_y_sign * offset * scanarea_offset_scalar)
+                        else:
+                            y = z.poi[outcome_false_y_idx][1] + int(offset_y_sign * offset * scanarea_offset_scalar)
+
                         if x > width:
                             x = width
                         if y > height:
