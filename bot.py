@@ -55,6 +55,7 @@ class Bot:
             zoneY = int(float(self.locZonePx[1]-wallCenterX[1])/float(maxY)*z.actualsize[1])
             self.locZone = (zoneX, zoneY)
             #set Arena location
+            self.locArena = (self.locZone[0] + (72 * z.id), self.locZone[1])
             
         #update the bot's heading
         x = self.symbol[3][0] - self.symbol[0][0]
