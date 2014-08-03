@@ -60,7 +60,7 @@ class UI:
         self.frametime = time.time()
     
     def onMouse(self,event,x,y,flags,param):
-        #print event,x,y,flags
+        #print "Mouse:",event,x,y,flags
         Arena = param[0]
         dm = param[1]
         if event == cv2.EVENT_LBUTTONUP:
@@ -87,7 +87,7 @@ class UI:
                     
                 elif self.menurows[rowClicked] == "numbots":
                     Arena.updateNumBots()
-                    dm.setMaxCount(Arena.numbots + Arena.numpoi + (Arena.numzones-1)*2)
+                    dm.setMaxCount(Arena.numbots + 4 + (Arena.numzones-1)*2)
                         
                 else:    
                     videoDevice_pattern = re.compile('^videoDevice(\d)$')

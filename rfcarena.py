@@ -16,7 +16,7 @@ cv2.startWindowThread()
 allImg = None
 
 #DataMatrix  
-dm = dm.DM((Arena.numbots + Arena.numpoi + (Arena.numzones-1)*2), 200)
+dm = dm.DM((Arena.numbots + 4 + (Arena.numzones-1)*2), 200)
 
 poi_pattern = re.compile('^C(\d)$')
 bot_pattern = re.compile('^(\d{2})$')
@@ -60,13 +60,16 @@ while True:
                 outputImg = origImg;
             
         #Scan for DataMatrix
-        dm.scan(origImg)
+        #dm.scan(origImg)
         
-        #xmin = z.poi[0][0] if z.poi[0][0] < z.poi[3][0] else z.poi[3][0]
-        #xmax = z.poi[1][0] if z.poi[1][0] > z.poi[2][0] else z.poi[2][0]
-        #ymax = z.poi[0][1] if z.poi[0][1] > z.poi[1][1] else z.poi[1][1]
-        #ymin = z.poi[2][1] if z.poi[2][1] < z.poi[3][1] else z.poi[3][1]
-        #dm.scan(origImg[xmin:xmax,ymin:ymax])  
+        #print z.scanarea
+        xmin = z.scanarea[0][0] if z.scanarea[0][0] < z.scanarea[3][0] else z.scanarea[3][0]
+        xmax = z.scanarea[1][0] if z.scanarea[1][0] > z.scanarea[2][0] else z.scanarea[2][0]
+        ymin = z.scanarea[2][1] if z.scanarea[2][1] < z.scanarea[3][1] else z.scanarea[3][1]
+        ymax = z.scanarea[0][1] if z.scanarea[0][1] > z.scanarea[1][1] else z.scanarea[1][1]
+        #print xmin,xmax,ymin,ymax
+        dm.scan(origImg[ymin:ymax,xmin:xmax], xmin = xmin, ymin = ymin)  
+        
         
 
         #For each detected DataMatrix symbol
@@ -80,7 +83,7 @@ while True:
                         z.poi[idx] = symbol[idx]
                         
                         offset = int(gap * (symbol[1][0]-symbol[0][0]) / cornerSize)
-                        scanarea_offset_scalar = 1.3
+                        scanarea_offset_scalar = 1.4
                     
                         offset_x_sign = 1 if (idx%3 != 0) else -1
                         offset_y_sign = 1 if (idx < 2) else -1
@@ -94,7 +97,7 @@ while True:
                         outcome_false_y_idx = idx if not (idx < 2) else y_op_idx
                         
                         if Arena.numzones > 1 and z.id == int(idx%3==0):
-                            x = 0 if (idx%3==0) else width
+                            x = z.poi[outcome_true_x_idx][0] + int(offset_x_sign * offset * scanarea_offset_scalar * 4)
                         elif z.poi[idx][0] < z.poi[x_op_idx][0]:
                             x = z.poi[outcome_true_x_idx][0] + int(offset_x_sign * offset * scanarea_offset_scalar)
                         else:
@@ -107,8 +110,12 @@ while True:
 
                         if x > width:
                             x = width
+                        if x < 0:
+                            x = 0
                         if y > height:
                             y = height
+                        if y < 0:
+                            y = 0
                         
                         z.scanarea[idx] = (x, y)
                         
