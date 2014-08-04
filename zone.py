@@ -1,30 +1,34 @@
 import cv2, time, subprocess
-        
+
+class Corner:
+    def __init__(self, zid, idx):
+        self.idx = idx
+        self.location = (-1, -1)
+        self.symbolvalue = zid*4 + idx
+        self.symbolcenter = (-1,-1)
+        self.time = time.time()
+        self.symboldimension = 4.1875
+        self.gap = 1.625
+        return
+
 class Zone:
     used_vdi = []
-    def __init__(self, idx, nzones, npoi, videodevices):
+    def __init__(self, idx, videodevices):
         self.id = idx
         self.vdi = idx
         self.videodevices = videodevices
         self.actualsize = (72, 48) #zone size in inches
-        self.poisymbol = [-1,-1,-1,-1]
-        self.poitime = [time.time(), time.time(), time.time(), time.time()] 
-        self.xoffset = 0
-        self.yoffset = 0 
         self.v4l2ucp = -1
         self.cap = -1        #capture device object (OpenCV)
         self.resolutions = [(640,480),(1280,720),(1920,1080)]
         self.ri = 1          #selected Resolution Index
         
-        x = self.resolutions[self.ri][0]
-        y = self.resolutions[self.ri][1]
-        self.poi = [(0,y),(x,y),(x,0),(0,0)]
-        self.scanarea = [(0,y),(x,y),(x,0),(0,0)]
-
-        self.poisymbol[0] = idx*4
-        self.poisymbol[1] = idx*4 + 1
-        self.poisymbol[2] = idx*4 + 2
-        self.poisymbol[3] = idx*4 + 3
+        self.corners = []
+        self.corners.append(Corner(idx, 0))
+        self.corners.append(Corner(idx, 1))
+        self.corners.append(Corner(idx, 2))
+        self.corners.append(Corner(idx, 3))
+        
         self.initVideoDevice()
         return
     
@@ -90,5 +94,7 @@ class Zone:
         y = self.resolutions[self.ri][1]
         self.close()
         self.initVideoDevice()
-        self.poi = [(0,y),(x,y),(x,0),(0,0)]
+        for corner in self.corners:
+            corner.location = (-1, -1)
+            corner.symbolcenter = (-1,-1)
         return

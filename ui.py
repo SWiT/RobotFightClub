@@ -87,7 +87,6 @@ class UI:
                     
                 elif self.menurows[rowClicked] == "numbots":
                     Arena.updateNumBots()
-                    dm.setMaxCount(Arena.numbots + 4 + (Arena.numzones-1)*2)
                         
                 else:    
                     videoDevice_pattern = re.compile('^videoDevice(\d)$')
@@ -209,11 +208,11 @@ class UI:
             
         #Draw Zone POI statuses
         for z in Arena.zone:
-            for idx in range(0,4):
-                output = "Z"+str(z.id)+" C"+str(z.poisymbol[idx])+":"
-                output += ' '+str(int(round((time.time()-z.poitime[idx])*1000,0)))
+            for corner in z.corners:
+                output = "Z"+str(z.id)+" C"+str(corner.symbolvalue)+":"
+                output += ' '+str(int(round((time.time()-corner.time)*1000,0)))
                 cv2.putText(controlPanelImg, output, self.pt, cv2.FONT_HERSHEY_PLAIN, 1.5, menutextcolor, 1)
-                self.menurows.append("z"+str(z.id)+"c"+str(idx))
+                self.menurows.append("z"+str(z.id)+"c"+str(corner.idx))
                 self.nextrow()
             
         self.menuSpacer()

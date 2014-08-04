@@ -14,7 +14,7 @@ class DM:
         return
             
     def scan(self, img, offsetx = 0, offsety = 0):
-        print self.max_count, self.timeout
+        #print self.max_count, self.timeout
         self.read.decode(size(img, 1), size(img, 0), buffer(img.tostring()))
         self.symbols = []
         for idx in range(1, self.read.count()+1):

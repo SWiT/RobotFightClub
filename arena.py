@@ -14,7 +14,6 @@ class Arena:
         self.gameon = False
         self.videodevices = []
         self.serialdevices = []
-        self.corners = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
         self.threshold = 215
         
         #Get lists of video and BT devices
@@ -31,7 +30,7 @@ class Arena:
             raise SystemExit('No video device found. (/dev/video#)')
         self.videodevices.sort()  
         self.serialdevices.sort()
-        print self.serialdevices
+        #print self.serialdevices
         self.buildZones()
         self.buildBots()
         return
@@ -50,7 +49,7 @@ class Arena:
             z.used_vdi = []
         self.zone = []
         for idx in range(0,self.numzones):
-            z = zone.Zone(idx, self.numzones, self.numpoi, self.videodevices)
+            z = zone.Zone(idx, self.videodevices)
             self.zone.append(z)
   
     def updateNumBots(self):

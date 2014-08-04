@@ -16,22 +16,22 @@ cv2.startWindowThread()
 allImg = None
 
 #DataMatrix  
+#Do initial "deep" scan to find eveything.
 dm = dm.DM((Arena.numbots + 4 + (Arena.numzones-1)*2), 100)
+#dm = dm.DM(1, 100)
 
-poi_pattern = re.compile('^C(\d)$')
+corner_pattern = re.compile('^C(\d)$')
 bot_pattern = re.compile('^(\d{2})$')
 
 cv2.createTrackbar('Scan (ms)', 'ArenaControlPanel', dm.timeout, 1000, dm.setTimeout)
 cv2.createTrackbar('Threshold', 'ArenaControlPanel', Arena.threshold, 255, Arena.setThreshold)
 cv2.setMouseCallback("ArenaControlPanel", ui.onMouse, (Arena,dm))
 
-cornerSize = 4.1875
-gap = 1.625
-
 ###############
 ## LOOP
 ###############
 while True:
+    
     for z in Arena.zone:
         #skip if capture is disabled
         if z.cap == -1:
@@ -60,61 +60,26 @@ while True:
                 outputImg = origImg;
             
         #Scan for DataMatrix
-        xmin = z.scanarea[0][0] if z.scanarea[0][0] < z.scanarea[3][0] else z.scanarea[3][0]
-        xmax = z.scanarea[1][0] if z.scanarea[1][0] > z.scanarea[2][0] else z.scanarea[2][0]
-        ymin = z.scanarea[2][1] if z.scanarea[2][1] < z.scanarea[3][1] else z.scanarea[3][1]
-        ymax = z.scanarea[0][1] if z.scanarea[0][1] > z.scanarea[1][1] else z.scanarea[1][1]
-        dm.scan(origImg[ymin:ymax,xmin:xmax], offsetx = xmin, offsety = ymin)  
-        #dm.scan(origImg)
+        dm.scan(origImg)
 
         #For each detected DataMatrix symbol
         for content,symbol in dm.symbols:
-            #Zone POI/Corners
-            match = poi_pattern.match(content)
+            #Zone Corners
+            match = corner_pattern.match(content)
             if match:
                 sval = int(match.group(1))
-                for idx,poival in enumerate(z.poisymbol):
-                    if sval == poival:
-                        z.poi[idx] = symbol[idx]
+                for idx,corner in enumerate(z.corners):
+                    if sval == corner.symbolvalue:
+                        corner.locPx = symbol[idx]
+                        corner.symbolcenter = findCenter(symbol)
                         
-                        offset = int(gap * (symbol[1][0]-symbol[0][0]) / cornerSize)
-                        scanarea_offset_scalar = 1.4
-                    
+                        offset = int(corner.gap * (symbol[1][0]-symbol[0][0]) / corner.symboldimension)
                         offset_x_sign = 1 if (idx%3 != 0) else -1
                         offset_y_sign = 1 if (idx < 2) else -1
                         
-                        z.poi[idx] = (z.poi[idx][0] + offset_x_sign * offset, z.poi[idx][1] + offset_y_sign * offset)
-                        x_op_idx = abs(idx - 3)
-                        y_op_idx = abs(idx - 5)%4
-                        outcome_true_x_idx = idx if (idx%3 == 0) else x_op_idx
-                        outcome_false_x_idx = idx if not (idx%3 == 0) else x_op_idx
-                        outcome_true_y_idx = idx if (idx < 2) else y_op_idx
-                        outcome_false_y_idx = idx if not (idx < 2) else y_op_idx
+                        corner.location = (corner.location[0] + offset_x_sign * offset, corner.location[1] + offset_y_sign * offset)
                         
-                        if Arena.numzones > 1 and z.id == int(idx%3==0):
-                            x = z.poi[outcome_true_x_idx][0] + int(offset_x_sign * offset * scanarea_offset_scalar * 4)
-                        elif z.poi[idx][0] < z.poi[x_op_idx][0]:
-                            x = z.poi[outcome_true_x_idx][0] + int(offset_x_sign * offset * scanarea_offset_scalar)
-                        else:
-                            x = z.poi[outcome_false_x_idx][0] + int(offset_x_sign * offset * scanarea_offset_scalar)
-                            
-                        if z.poi[idx][1] > z.poi[y_op_idx][1]:
-                            y = z.poi[outcome_true_y_idx][1] + int(offset_y_sign * offset * scanarea_offset_scalar)
-                        else:
-                            y = z.poi[outcome_false_y_idx][1] + int(offset_y_sign * offset * scanarea_offset_scalar)
-
-                        if x > width:
-                            x = width
-                        elif x < 0:
-                            x = 0
-                        if y > height:
-                            y = height
-                        elif y < 0:
-                            y = 0
-                        
-                        z.scanarea[idx] = (x, y)
-                        
-                        z.poitime[idx] = time.time()
+                        corner.time = time.time()
                         if ui.isDisplayed(z.id) and ui.displayMode < 3:
                             drawBorder(outputImg, symbol, ui.COLOR_BLUE, 2)
                             pt = (symbol[1][0]-35, symbol[1][1]-25)  
@@ -131,6 +96,7 @@ while True:
                 if ui.isDisplayed(z.id) and ui.displayMode < 3:
                     bot.drawOutput(outputImg)   #draw the bot's symbol
 
+        
         #Draw Objects on Scanner window if this zone is displayed
         if ui.isDisplayed(z.id):
             #Crosshair in center
@@ -142,10 +108,13 @@ while True:
             cv2.line(outputImg, pt0, pt1, ui.COLOR_PURPLE, 1)
             
             #Zone edges
-            drawBorder(outputImg, z.poi, ui.COLOR_BLUE, 2)
+            corner_pts = []
+            for corner in z.corners:
+                #print corner.location
+                corner_pts.append(corner.location)
+            #print corner_pts
+            drawBorder(outputImg, corner_pts, ui.COLOR_BLUE, 2)
             
-            #Scan Area edges
-            drawBorder(outputImg, z.scanarea, ui.COLOR_LBLUE, 2)
 
             #Last Known Bot Locations
             for bot in Arena.bot:

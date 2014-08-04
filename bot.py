@@ -46,10 +46,10 @@ class Bot:
 
         #update the bot's location
         self.locZonePx = findCenter(self.symbol)
-        wallCenterX = findCenter([z.poi[1],z.poi[0]])
-        wallCenterY = findCenter([z.poi[3],z.poi[0]])
-        maxX = z.poi[1][0]-z.poi[0][0]
-        maxY = z.poi[3][1]-z.poi[0][1]
+        wallCenterX = findCenter([z.corners[1].location, z.corners[0].location])
+        wallCenterY = findCenter([z.corners[3].location, z.corners[0].location])
+        maxX = z.corners[1].location[0] - z.corners[0].location[0]
+        maxY = z.corners[3].location[1] - z.corners[0].location[1]
         if abs(maxX) > 0 and abs(maxY) > 0:
             zoneX = int(float(self.locZonePx[0]-wallCenterY[0])/float(maxX)*z.actualsize[0])
             zoneY = int(float(self.locZonePx[1]-wallCenterX[1])/float(maxY)*z.actualsize[1])
