@@ -17,8 +17,8 @@ class Bot:
         self.alive = False
         self.time = time.time()
         self.color_dead = (0,0,255)
-        self.color_alive = (29,227,245)
-        self.color_detected = (0,240,0)
+        self.color_alive = (0,170,0)
+        self.color_detected = (29,227,245)
         self.color_roi = (127,127,127)
         
         self.serialdevices = serialdevices

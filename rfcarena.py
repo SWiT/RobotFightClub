@@ -16,7 +16,7 @@ cv2.startWindowThread()
 allImg = None
 
 #DataMatrix  
-dm = dm.DM((Arena.numbots + 4 + (Arena.numzones-1)*2), 200)
+dm = dm.DM((Arena.numbots + 4 + (Arena.numzones-1)*2), 100)
 
 poi_pattern = re.compile('^C(\d)$')
 bot_pattern = re.compile('^(\d{2})$')
@@ -60,17 +60,12 @@ while True:
                 outputImg = origImg;
             
         #Scan for DataMatrix
-        #dm.scan(origImg)
-        
-        #print z.scanarea
         xmin = z.scanarea[0][0] if z.scanarea[0][0] < z.scanarea[3][0] else z.scanarea[3][0]
         xmax = z.scanarea[1][0] if z.scanarea[1][0] > z.scanarea[2][0] else z.scanarea[2][0]
         ymin = z.scanarea[2][1] if z.scanarea[2][1] < z.scanarea[3][1] else z.scanarea[3][1]
         ymax = z.scanarea[0][1] if z.scanarea[0][1] > z.scanarea[1][1] else z.scanarea[1][1]
-        #print xmin,xmax,ymin,ymax
-        dm.scan(origImg[ymin:ymax,xmin:xmax], xmin = xmin, ymin = ymin)  
-        
-        
+        dm.scan(origImg[ymin:ymax,xmin:xmax], offsetx = xmin, offsety = ymin)  
+        #dm.scan(origImg)
 
         #For each detected DataMatrix symbol
         for content,symbol in dm.symbols:
@@ -110,11 +105,11 @@ while True:
 
                         if x > width:
                             x = width
-                        if x < 0:
+                        elif x < 0:
                             x = 0
                         if y > height:
                             y = height
-                        if y < 0:
+                        elif y < 0:
                             y = 0
                         
                         z.scanarea[idx] = (x, y)

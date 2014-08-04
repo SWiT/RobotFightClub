@@ -15,7 +15,7 @@ class Arena:
         self.videodevices = []
         self.serialdevices = []
         self.corners = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
-        self.threshold = 150
+        self.threshold = 215
         
         #Get lists of video and BT devices
         video_pattern = re.compile('^video(\d)$')
