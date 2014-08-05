@@ -17,8 +17,9 @@ allImg = None
 
 #DataMatrix  
 #Do initial "deep" scan to find eveything.
-dm = dm.DM((Arena.numbots + 4 + (Arena.numzones-1)*2), 100)
-#dm = dm.DM(1, 100)
+#dm = dm.DM(Arena.numbots + 4 + (Arena.numzones-1)*2, 100)
+dm = dm.DM(Arena.numbots + 6, 100)
+
 
 corner_pattern = re.compile('^C(\d)$')
 bot_pattern = re.compile('^(\d{2})$')
@@ -70,7 +71,7 @@ while True:
                 sval = int(match.group(1))
                 for idx,corner in enumerate(z.corners):
                     if sval == corner.symbolvalue:
-                        corner.locPx = symbol[idx]
+                        corner.location = symbol[idx]
                         corner.symbolcenter = findCenter(symbol)
                         
                         offset = int(corner.gap * (symbol[1][0]-symbol[0][0]) / corner.symboldimension)
