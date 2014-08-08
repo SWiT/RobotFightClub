@@ -12,8 +12,6 @@ cv2.namedWindow("ArenaScanner")
 cv2.namedWindow("ArenaControlPanel")
 cv2.startWindowThread()
 
-allImg = None
-
 cv2.createTrackbar('Scan (ms)', 'ArenaControlPanel', Arena.dm.timeout, 1000, Arena.dm.setTimeout)
 cv2.createTrackbar('Threshold', 'ArenaControlPanel', Arena.threshold, 255, Arena.setThreshold)
 cv2.setMouseCallback("ArenaControlPanel", Arena.ui.onMouse, Arena)

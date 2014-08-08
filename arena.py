@@ -1,8 +1,7 @@
 import re, os, cv2, time, re
-import bot
-import zone
-import ui
-import dm
+from numpy import *
+
+import bot, zone, ui, dm
 from utils import *
 
 class Arena:    
@@ -17,7 +16,7 @@ class Arena:
         self.videodevices = []
         self.serialdevices = []
         self.threshold = 219
-        
+        self.allImg = None
         self.botPattern = re.compile('^(\d{2})$')
         self.cornerPattern = re.compile('^C(\d)$')
         
@@ -160,13 +159,13 @@ class Arena:
             
             #Merge images if Display: All
             if self.ui.display == -1:
-                if allImg is None or z.id == 0: #not set or first
-                    allImg = zeros((self.height, self.width*self.numzones, 3), uint8)
-                #print z.id, height, width, self.numzones, size(outputImg,0), size(outputImg,1)
-                if size(outputImg,0) == self.height and size(outputImg,1) == self.width:
-                    allImg[0:self.height, (z.id*self.width):((z.id+1)*self.width)] = outputImg
+                if self.allImg is None or z.id == 0: #not set or first
+                    self.allImg = zeros((z.height, z.width*self.numzones, 3), uint8)
+                #print z.id, z.height, z.width, self.numzones, size(outputImg,0), size(outputImg,1)
+                if size(outputImg,0) == z.height and size(outputImg,1) == z.width:
+                    self.allImg[0:z.height, (z.id*z.width):((z.id+1)*z.width)] = outputImg
                 if z.id+1 == len(self.zone):   #last
-                    outputImg = allImg
+                    outputImg = self.allImg
         
         #End of zone loop
         return outputImg
