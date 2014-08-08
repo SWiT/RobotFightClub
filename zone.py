@@ -1,4 +1,5 @@
 import cv2, time, subprocess
+from numpy import *
 
 class Corner:
     def __init__(self, zid, idx):
@@ -23,6 +24,10 @@ class Zone:
         self.resolutions = [(640,480),(1280,720),(1920,1080)]
         self.ri = 1          #selected Resolution Index
         
+        self.image = None
+        self.width = 0;
+        self.height = 0;
+        
         self.corners = []
         self.corners.append(Corner(idx, 0))
         self.corners.append(Corner(idx, 1))
@@ -31,6 +36,25 @@ class Zone:
         
         self.initVideoDevice()
         return
+    
+    
+    def getImage(self):
+        #skip if capture is disabled
+        if self.cap == -1:
+            return False
+            
+        #get the next frame from the zones capture device
+        success, self.image = self.cap.read()
+        if not success:
+            print("Error reading from camera: "+str(self.vdi));
+            global ui
+            ui.exit = True
+            return False
+            
+        self.width = size(self.image, 1)
+        self.height = size(self.image, 0)
+        return True
+        
     
     def nextAvailableDevice(self):
         self.vdi += 1

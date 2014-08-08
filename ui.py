@@ -61,9 +61,8 @@ class UI:
     
     def onMouse(self,event,x,y,flags,param):
         #print "Mouse:",event,x,y,flags
-        Arena = param[0]
-        dm = param[1]
         if event == cv2.EVENT_LBUTTONUP:
+            Arena = param
             rowClicked = y/self.lh
             if rowClicked < len(self.menurows):
                 if self.menurows[rowClicked] == "zones":
