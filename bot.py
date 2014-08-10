@@ -15,6 +15,7 @@ class Bot:
         self.ledPt = None
         self.symbol = None
         self.alive = False
+        self.found = False
         self.time = time.time()
         self.color_dead = (0,0,255)
         self.color_alive = (0,170,0)
@@ -39,7 +40,7 @@ class Bot:
                 self.serialdevices.append('/dev/'+dev)
 
 
-    def setData(self, symbol, z, threshImg):
+    def setData(self, symbol, z):
         self.time = time.time()
         self.symbol = symbol
         self.zid = z.id
@@ -73,7 +74,7 @@ class Bot:
         x += int((pt3[0] - pt0[0])*.24)
         y += int((pt3[1] - pt0[1])*.24)
         self.ledPt = (x, y)
-        roi = threshImg[y-5:y+6,x-5:x+6]
+        roi = z.imageThresh[y-5:y+6,x-5:x+6]
         scAvg = cv2.mean(roi)
         self.alive = scAvg[0] >= 10 
         return

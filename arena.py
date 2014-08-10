@@ -15,8 +15,6 @@ class Arena:
         self.gameon = False
         self.videodevices = []
         self.serialdevices = []
-        self.threshold = 219
-        self.allImg = None
         self.botPattern = re.compile('^(\d{2})$')
         self.cornerPattern = re.compile('^C(\d)$')
         
@@ -73,28 +71,14 @@ class Arena:
     def toggleGameOn(self):
         self.gameon = False if self.gameon else True
         return
-        
-    def setThreshold(self, v):
-        self.threshold = v
-        return
-        
+            
     def deepScan(self):
+        for bot in self.bot:
+            bot.found = False
+            
         for z in self.zone:
             z.getImage()
         
-            #Apply image transformations
-            threshImg = cv2.cvtColor(z.image, cv2.COLOR_BGR2GRAY) #convert to grayscale
-            ret,threshImg = cv2.threshold(threshImg, self.threshold, 255, cv2.THRESH_BINARY)
-            
-            #Start Output Image
-            if self.ui.isDisplayed(z.id):
-                if self.ui.displayMode >= 2:
-                    outputImg = zeros((height, width, 3), uint8) #create a blank image
-                elif self.ui.displayMode == 0:
-                    outputImg = cv2.cvtColor(threshImg, cv2.COLOR_GRAY2BGR)
-                else:
-                    outputImg = z.image;
-                
             #Scan for DataMatrix
             self.dm.scan(z.image)
         
@@ -106,6 +90,7 @@ class Arena:
                     sval = int(match.group(1))
                     for idx,corner in enumerate(z.corners):
                         if sval == corner.symbolvalue:
+                            corner.symbol = symbol
                             corner.location = symbol[idx]
                             corner.symbolcenter = findCenter(symbol)
                             
@@ -114,13 +99,9 @@ class Arena:
                             offset_y_sign = 1 if (idx < 2) else -1
                             
                             corner.location = (corner.location[0] + offset_x_sign * offset, corner.location[1] + offset_y_sign * offset)
-                            
                             corner.time = time.time()
-                            if self.ui.isDisplayed(z.id) and self.ui.displayMode < 3:
-                                drawBorder(outputImg, symbol, self.ui.COLOR_BLUE, 2)
-                                pt = (symbol[1][0]-35, symbol[1][1]-25)  
-                                cv2.putText(outputImg, str(sval), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, self.ui.COLOR_BLUE, 2)
-                
+                            corner.found = True
+                            
                 #Bot Symbol
                 match = self.botPattern.match(content)
                 if match:
@@ -128,46 +109,69 @@ class Arena:
                     if botId < 0 or self.numbots <=botId:
                         continue
                     bot = self.bot[botId]
-                    bot.setData(symbol, z, threshImg)    #update the bot's data
-                    if self.ui.isDisplayed(z.id) and self.ui.displayMode < 3:
-                        bot.drawOutput(outputImg)   #draw the bot's symbol
+                    bot.setData(symbol, z)    #update the bot's data
+                    bot.found = True
+
+        #End of zone loop
+        return
+
+
+    def render(self):
+        #Start Output Image
+        #create a blank image
+        if self.ui.displayAll():
+            widthAll = 0
+            heightAll = 0
+            for z in self.zone:
+                widthAll += z.width
+                heightAll = z.height
+            outputImg = zeros((heightAll, widthAll, 3), uint8)
+        elif size(self.zone) > 0:
+            print self.ui.display
+            print self.zone
+            outputImg = zeros((self.zone[self.ui.display].height, self.zone[self.ui.display].width, 3), uint8)
+        else:
+            outputImg = zeros((720, 1280, 3), uint8)
         
-            
-            #Draw Objects on Scanner window if this zone is displayed
+        for z in self.zone:
             if self.ui.isDisplayed(z.id):
+                if self.ui.displayMode == 0:
+                    img = cv2.cvtColor(z.imageThresh, cv2.COLOR_GRAY2BGR)
+                elif self.ui.displayMode >= 2:
+                    img = zeros((z.height, z.width, 3), uint8) #create a blank image
+                else:
+                    img = z.image
+                    
+                #Draw Objects on Scanner window if this zone is displayed
                 #Crosshair in center
                 pt0 = (z.width/2, z.height/2-5)
                 pt1 = (z.width/2, z.height/2+5)
-                cv2.line(outputImg, pt0, pt1, self.ui.COLOR_PURPLE, 1)
+                cv2.line(img, pt0, pt1, self.ui.COLOR_PURPLE, 1)
                 pt0 = (z.width/2-5, z.height/2)
                 pt1 = (z.width/2+5, z.height/2)
-                cv2.line(outputImg, pt0, pt1, self.ui.COLOR_PURPLE, 1)
+                cv2.line(img, pt0, pt1, self.ui.COLOR_PURPLE, 1)
                 
                 #Zone edges
                 corner_pts = []
                 for corner in z.corners:
-                    #print corner.location
                     corner_pts.append(corner.location)
-                #print corner_pts
-                drawBorder(outputImg, corner_pts, self.ui.COLOR_BLUE, 2)
+                    if self.ui.displayMode < 3 and corner.found:
+                        drawBorder(img, corner.symbol, self.ui.COLOR_BLUE, 2)
+                        pt = (corner.symbolcenter[0]-5, corner.symbolcenter[1]+5)  
+                        cv2.putText(img, str(corner.symbolvalue), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, self.ui.COLOR_BLUE, 2)
+                drawBorder(img, corner_pts, self.ui.COLOR_BLUE, 2)
                 
-        
                 #Last Known Bot Locations
                 for bot in self.bot:
                     if bot.zid == z.id:                
-                        bot.drawLastKnownLoc(outputImg)
-            
-            #Merge images if Display: All
-            if self.ui.display == -1:
-                if self.allImg is None or z.id == 0: #not set or first
-                    self.allImg = zeros((z.height, z.width*self.numzones, 3), uint8)
-                #print z.id, z.height, z.width, self.numzones, size(outputImg,0), size(outputImg,1)
-                if size(outputImg,0) == z.height and size(outputImg,1) == z.width:
-                    self.allImg[0:z.height, (z.id*z.width):((z.id+1)*z.width)] = outputImg
-                if z.id+1 == len(self.zone):   #last
-                    outputImg = self.allImg
-        
-        #End of zone loop
+                        bot.drawLastKnownLoc(img)
+                        if self.ui.displayMode < 3 and bot.found:
+                            bot.drawOutput(img)   #draw the detection symbol
+                        
+                if self.ui.displayAll():
+                    outputImg[0:z.height, z.id*z.width:(z.id+1)*z.width] = img
+                else:
+                    outputImg = img
+                        
         return outputImg
-        
 

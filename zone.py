@@ -10,6 +10,8 @@ class Corner:
         self.time = time.time()
         self.symboldimension = 4.1875
         self.gap = 1.625
+        self.symbol = None
+        self.found = False
         return
 
 class Zone:
@@ -25,6 +27,8 @@ class Zone:
         self.ri = 1          #selected Resolution Index
         
         self.image = None
+        self.threshold = 219
+        self.imageThresh = None
         self.width = 0;
         self.height = 0;
         
@@ -36,7 +40,10 @@ class Zone:
         
         self.initVideoDevice()
         return
-    
+        
+    def setThreshold(self, v):
+        self.threshold = v
+        return
     
     def getImage(self):
         #skip if capture is disabled
@@ -53,6 +60,11 @@ class Zone:
             
         self.width = size(self.image, 1)
         self.height = size(self.image, 0)
+        
+        #Threshold the image for leds
+        self.imageThresh = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY) #convert to grayscale
+        ret,self.imageThresh = cv2.threshold(self.imageThresh, self.threshold, 255, cv2.THRESH_BINARY)
+            
         return True
         
     

@@ -28,6 +28,9 @@ class UI:
     def isDisplayed(self,idx):
         return self.display == idx or self.display == -1
         
+    def displayAll(self):
+        return self.display == -1
+        
     def updateDisplayMode(self):
         self.displayMode += 1
         if self.displayMode > 3:
@@ -67,7 +70,7 @@ class UI:
             if rowClicked < len(self.menurows):
                 if self.menurows[rowClicked] == "zones":
                     self.numzones = Arena.updateNumberOfZones()
-                    self.display = 0
+                    self.updateDisplay(-1)
                     
                 elif self.menurows[rowClicked] == "exit":
                     self.exit = True
@@ -225,7 +228,7 @@ class UI:
           
     def resize(self, img):        
         #Resize output image
-        if 0 < self.displaySize < 100:
+        if size(img,1) > 0 and size(img,0) > 0 and 0 < self.displaySize < 100:
             r = float(self.displaySize)/100
             img = cv2.resize(img, (0,0), fx=r, fy=r)
         return img

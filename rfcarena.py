@@ -1,4 +1,4 @@
-import cv2, serial, time, os, re
+import cv2
 from numpy import *
 import arena
 
@@ -13,14 +13,15 @@ cv2.namedWindow("ArenaControlPanel")
 cv2.startWindowThread()
 
 cv2.createTrackbar('Scan (ms)', 'ArenaControlPanel', Arena.dm.timeout, 1000, Arena.dm.setTimeout)
-cv2.createTrackbar('Threshold', 'ArenaControlPanel', Arena.threshold, 255, Arena.setThreshold)
+#cv2.createTrackbar('Threshold1', 'ArenaControlPanel', Arena.zone[0].threshold, 255, Arena.zone[0].setThreshold)
 cv2.setMouseCallback("ArenaControlPanel", Arena.ui.onMouse, Arena)
 
 ###############
 ## LOOP
 ###############
 while True:
-    outputImg = Arena.deepScan()
+    Arena.deepScan()
+    outputImg = Arena.render() 
     
     #Read from each bots serial device
     for bot in Arena.bot:                   
@@ -46,10 +47,11 @@ while True:
             
     controlPanelImg = Arena.ui.drawControlPanel(Arena)
 
-    outputImg = Arena.ui.resize(outputImg)
-
     #Display the image or frame of video
-    cv2.imshow("ArenaScanner", outputImg)
+    if size(outputImg,0) > 0 and size(outputImg,1) > 0:
+        outputImg = Arena.ui.resize(outputImg)
+        cv2.imshow("ArenaScanner", outputImg)
+    
     cv2.imshow("ArenaControlPanel", controlPanelImg)
 
     Arena.ui.calcFPS()
