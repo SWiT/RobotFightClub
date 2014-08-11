@@ -127,9 +127,8 @@ class Arena:
                        
             if not bot.found:
                 #try the other zone
-                print bot.locArena
+                print "Bot", bot.id, bot.locArena
                
-        #return        
         for z in self.zone:
             for corner in z.corners:
                 corner.scanDistance = int(dist(corner.symbol[0], corner.symbol[1]) * 0.75)
@@ -157,6 +156,8 @@ class Arena:
                        if int(match.group(1)) == corner.symbolvalue:
                            corner.setData(symbol)    #update the bot's data
                            corner.found = True 
+                if not corner.found:
+                    print "Corner", corner.symbolvalue
         return
 
         
