@@ -37,7 +37,7 @@ class Arena:
         self.buildBots()
         
         self.ui = ui.UI()
-        self.dm = dm.DM(self.numbots + 8, 200)
+        self.dm = dm.DM(self.numbots + 8, 500)
         return
         
     def updateNumberOfZones(self):
@@ -116,7 +116,8 @@ class Arena:
             roi = z.image[ymin:ymax,xmin:xmax]
             
             #Scan for DataMatrix
-            bot.found = False
+            if time.time() - bot.time > .5:
+                bot.found = False
             self.dm.scan(roi, offsetx = xmin, offsety = ymin)
             for content,symbol in self.dm.symbols:
                match = self.botPattern.match(content)
@@ -127,38 +128,39 @@ class Arena:
                        
             if not bot.found:
                 #try the other zone
-                print "Bot", bot.id, bot.locArena
-               
-        for z in self.zone:
-            for corner in z.corners:
-                corner.scanDistance = int(dist(corner.symbol[0], corner.symbol[1]) * 0.75)
-                z = self.zone[corner.zid]
-                xmin = corner.symbolcenter[0] - corner.scanDistance
-                xmax = corner.symbolcenter[0] + corner.scanDistance
-                ymin = corner.symbolcenter[1] - corner.scanDistance
-                ymax = corner.symbolcenter[1] + corner.scanDistance
-                if xmin < 0:
-                    xmin = 0
-                if xmax > z.width:
-                    xmax = z.width
-                if ymin < 0:
-                    ymin = 0
-                if ymax > z.height:
-                    ymax = z.height
-                roi = z.image[ymin:ymax,xmin:xmax]
-                
-                #Scan for DataMatrix
-                corner.found = False
-                self.dm.scan(roi, offsetx = xmin, offsety = ymin)
-                for content,symbol in self.dm.symbols:
-                   match = self.cornerPattern.match(content)
-                   if match:
-                       if int(match.group(1)) == corner.symbolvalue:
-                           corner.setData(symbol)    #update the bot's data
-                           corner.found = True 
-                if not corner.found:
-                    print "Corner", corner.symbolvalue
+                print "Bot",bot.id, "Z",bot.zid, bot.locArena, time.time() - bot.time
         return
+        
+        # for z in self.zone:
+            # for corner in z.corners:
+                # corner.scanDistance = int(dist(corner.symbol[0], corner.symbol[1]) * 0.75)
+                # z = self.zone[corner.zid]
+                # xmin = corner.symbolcenter[0] - corner.scanDistance
+                # xmax = corner.symbolcenter[0] + corner.scanDistance
+                # ymin = corner.symbolcenter[1] - corner.scanDistance
+                # ymax = corner.symbolcenter[1] + corner.scanDistance
+                # if xmin < 0:
+                    # xmin = 0
+                # if xmax > z.width:
+                    # xmax = z.width
+                # if ymin < 0:
+                    # ymin = 0
+                # if ymax > z.height:
+                    # ymax = z.height
+                # roi = z.image[ymin:ymax,xmin:xmax]
+                # 
+                # #Scan for DataMatrix
+                # corner.found = False
+                # self.dm.scan(roi, offsetx = xmin, offsety = ymin)
+                # for content,symbol in self.dm.symbols:
+                   # match = self.cornerPattern.match(content)
+                   # if match:
+                       # if int(match.group(1)) == corner.symbolvalue:
+                           # corner.setData(symbol)    #update the bot's data
+                           # corner.found = True 
+                # if not corner.found:
+                    # print "Corner", corner.symbolvalue
+        # return
 
         
     def deepScan(self):

@@ -193,6 +193,7 @@ class UI:
         #Draw Bot Statuses and Settings
         for bot in Arena.bot:
             output = str(bot.id)+":"
+            output += ' Z'+str(bot.zid)
             output += ' '+str(bot.locArena)
             output += ' '+str(bot.heading)
             output += ' '+('A' if bot.alive else 'D')
