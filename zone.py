@@ -1,17 +1,33 @@
 import cv2, time, subprocess
 from numpy import *
+from utils import *
 
 class Corner:
     def __init__(self, zid, idx):
+        self.zid = zid
         self.idx = idx
         self.location = (-1, -1)
         self.symbolvalue = zid*4 + idx
         self.symbolcenter = (-1,-1)
+        self.scanDistance = 0
         self.time = time.time()
         self.symboldimension = 4.1875
         self.gap = 1.625
         self.symbol = None
         self.found = False
+        return
+    
+    def setData(self, symbol):
+        self.symbol = symbol
+        self.location = symbol[self.idx]
+        self.symbolcenter = findCenter(symbol)
+        
+        offset = int(self.gap * (symbol[1][0]-symbol[0][0]) / self.symboldimension)
+        offset_x_sign = 1 if (self.idx%3 != 0) else -1
+        offset_y_sign = 1 if (self.idx < 2) else -1
+        
+        self.location = (self.location[0] + offset_x_sign * offset, self.location[1] + offset_y_sign * offset)
+        self.time = time.time()
         return
 
 class Zone:

@@ -8,6 +8,7 @@ class Bot:
     def __init__(self, idx, serialdevices):
         self.id = idx
         self.zid = 0
+        self.scanDistance = 0
         self.locZonePx = (0,0)
         self.locZone = (0,0)
         self.locArena = (0,0)

@@ -13,14 +13,17 @@ cv2.namedWindow("ArenaControlPanel")
 cv2.startWindowThread()
 
 cv2.createTrackbar('Scan (ms)', 'ArenaControlPanel', Arena.dm.timeout, 1000, Arena.dm.setTimeout)
-#cv2.createTrackbar('Threshold1', 'ArenaControlPanel', Arena.zone[0].threshold, 255, Arena.zone[0].setThreshold)
+#cv2.createTrackbar('Threshold0', 'ArenaControlPanel', Arena.zone[0].threshold, 255, Arena.zone[0].setThreshold)
 cv2.setMouseCallback("ArenaControlPanel", Arena.ui.onMouse, Arena)
 
 ###############
 ## LOOP
 ###############
 while True:
-    Arena.deepScan()
+    if Arena.allFound():
+        Arena.targettedScan()
+    else:
+        Arena.deepScan()
     outputImg = Arena.render() 
     
     #Read from each bots serial device

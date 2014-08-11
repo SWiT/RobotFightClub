@@ -27,11 +27,15 @@ class DM:
             self.symbols.append(data)
         
     def setTimeout(self, v):
+        if self.timeout == v:
+            return
         self.timeout = v
         self.loadReader()
         return
         
     def setMaxCount(self, v):
+        if self.max_count == v:
+            return
         self.max_count = v
         self.loadReader()
         return

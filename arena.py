@@ -37,7 +37,7 @@ class Arena:
         self.buildBots()
         
         self.ui = ui.UI()
-        self.dm = dm.DM(self.numbots + 6, 100)
+        self.dm = dm.DM(self.numbots + 8, 200)
         return
         
     def updateNumberOfZones(self):
@@ -71,11 +71,99 @@ class Arena:
     def toggleGameOn(self):
         self.gameon = False if self.gameon else True
         return
+    
+    def allFound(self):
+        allfound = True
+        for bot in self.bot:
+            allfound = allfound and bot.found
             
-    def deepScan(self):
+        for z in self.zone:
+            for c in z.corners:
+                allfound = allfound and c.found
+        return allfound
+
+
+    def resetFound(self):
         for bot in self.bot:
             bot.found = False
             
+        for z in self.zone:
+            for c in z.corners:
+                c.found = False
+        return
+
+
+    def targettedScan(self):
+        self.dm.setMaxCount(1)
+        for z in self.zone:
+            z.getImage()
+            
+        for bot in self.bot:
+            bot.scanDistance = int(dist(bot.symbol[0], bot.symbol[1]) * 1.5)
+            z = self.zone[bot.zid]
+            xmin = bot.locZonePx[0] - bot.scanDistance
+            xmax = bot.locZonePx[0] + bot.scanDistance
+            ymin = bot.locZonePx[1] - bot.scanDistance
+            ymax = bot.locZonePx[1] + bot.scanDistance
+            if xmin < 0:
+                xmin = 0
+            if xmax > z.width:
+                xmax = z.width
+            if ymin < 0:
+                ymin = 0
+            if ymax > z.height:
+                ymax = z.height
+            roi = z.image[ymin:ymax,xmin:xmax]
+            
+            #Scan for DataMatrix
+            bot.found = False
+            self.dm.scan(roi, offsetx = xmin, offsety = ymin)
+            for content,symbol in self.dm.symbols:
+               match = self.botPattern.match(content)
+               if match:
+                   if int(match.group(1)) == bot.id and size(self.zone) > bot.zid:
+                       bot.setData(symbol, z)    #update the bot's data
+                       bot.found = True
+                       
+            if not bot.found:
+                #try the other zone
+                print bot.locArena
+               
+        #return        
+        for z in self.zone:
+            for corner in z.corners:
+                corner.scanDistance = int(dist(corner.symbol[0], corner.symbol[1]) * 0.75)
+                z = self.zone[corner.zid]
+                xmin = corner.symbolcenter[0] - corner.scanDistance
+                xmax = corner.symbolcenter[0] + corner.scanDistance
+                ymin = corner.symbolcenter[1] - corner.scanDistance
+                ymax = corner.symbolcenter[1] + corner.scanDistance
+                if xmin < 0:
+                    xmin = 0
+                if xmax > z.width:
+                    xmax = z.width
+                if ymin < 0:
+                    ymin = 0
+                if ymax > z.height:
+                    ymax = z.height
+                roi = z.image[ymin:ymax,xmin:xmax]
+                
+                #Scan for DataMatrix
+                corner.found = False
+                self.dm.scan(roi, offsetx = xmin, offsety = ymin)
+                for content,symbol in self.dm.symbols:
+                   match = self.cornerPattern.match(content)
+                   if match:
+                       if int(match.group(1)) == corner.symbolvalue:
+                           corner.setData(symbol)    #update the bot's data
+                           corner.found = True 
+        return
+
+        
+    def deepScan(self):
+        print "deepScan()"  
+        maxcount =  self.numbots + 8
+        self.dm.setMaxCount(maxcount)
         for z in self.zone:
             z.getImage()
         
@@ -88,18 +176,10 @@ class Arena:
                 match = self.cornerPattern.match(content)
                 if match:
                     sval = int(match.group(1))
-                    for idx,corner in enumerate(z.corners):
+                    for corner in z.corners:
                         if sval == corner.symbolvalue:
-                            corner.symbol = symbol
-                            corner.location = symbol[idx]
-                            corner.symbolcenter = findCenter(symbol)
+                            corner.setData(symbol)
                             
-                            offset = int(corner.gap * (symbol[1][0]-symbol[0][0]) / corner.symboldimension)
-                            offset_x_sign = 1 if (idx%3 != 0) else -1
-                            offset_y_sign = 1 if (idx < 2) else -1
-                            
-                            corner.location = (corner.location[0] + offset_x_sign * offset, corner.location[1] + offset_y_sign * offset)
-                            corner.time = time.time()
                             corner.found = True
                             
                 #Bot Symbol
@@ -127,8 +207,6 @@ class Arena:
                 heightAll = z.height
             outputImg = zeros((heightAll, widthAll, 3), uint8)
         elif size(self.zone) > 0:
-            print self.ui.display
-            print self.zone
             outputImg = zeros((self.zone[self.ui.display].height, self.zone[self.ui.display].width, 3), uint8)
         else:
             outputImg = zeros((720, 1280, 3), uint8)
@@ -156,6 +234,11 @@ class Arena:
                 for corner in z.corners:
                     corner_pts.append(corner.location)
                     if self.ui.displayMode < 3 and corner.found:
+                        xmin = corner.symbolcenter[0] - corner.scanDistance
+                        xmax = corner.symbolcenter[0] + corner.scanDistance
+                        ymin = corner.symbolcenter[1] - corner.scanDistance
+                        ymax = corner.symbolcenter[1] + corner.scanDistance
+                        drawBorder(img, [(xmin,ymax),(xmax,ymax),(xmax,ymin),(xmin,ymin)], self.ui.COLOR_LBLUE, 2)
                         drawBorder(img, corner.symbol, self.ui.COLOR_BLUE, 2)
                         pt = (corner.symbolcenter[0]-5, corner.symbolcenter[1]+5)  
                         cv2.putText(img, str(corner.symbolvalue), pt, cv2.FONT_HERSHEY_PLAIN, 1.5, self.ui.COLOR_BLUE, 2)
@@ -166,6 +249,11 @@ class Arena:
                     if bot.zid == z.id:                
                         bot.drawLastKnownLoc(img)
                         if self.ui.displayMode < 3 and bot.found:
+                            xmin = bot.locZonePx[0] - bot.scanDistance
+                            xmax = bot.locZonePx[0] + bot.scanDistance
+                            ymin = bot.locZonePx[1] - bot.scanDistance
+                            ymax = bot.locZonePx[1] + bot.scanDistance
+                            drawBorder(img, [(xmin,ymax),(xmax,ymax),(xmax,ymin),(xmin,ymin)], self.ui.COLOR_LBLUE, 2)
                             bot.drawOutput(img)   #draw the detection symbol
                         
                 if self.ui.displayAll():
