@@ -19,12 +19,12 @@ Robot Fight Club is an autonomous robot fighting platform. It is built using dat
 
 The game is simple.  Each robot tries to pop the balloon of the other robots and be the last alive.
 
-We are currently in back in alpha stages.  The old python code didn't scale and was too sensitive for changing lighting conditions. The current Beaglebone Black based solution has one BBB running rfcscanner per 4'x6' arena section.
+We are currently back in alpha stages.  The old python code didn't scale and was too sensitive for changing lighting conditions. The current Beaglebone Black based solution has one BBB running rfcscanner per 4'x6' arena section so it will scale very well.  By using C++ instead of Python the OpenCV libraries should give better control of camera focus and exposure along with a reduced footprint.
 
 ###You will need:
 A PC Running Ubuntu 14.04 or your preferred Linux Distribution.
 A webcam capable of 1080p or higher resolution.
-A printed set of datamatrices (the arena corners C0-C3 and a two digit number like 00-03).
+A printed set of datamatrices (the arena corners C0-C3 and two digit numbers 00-03).
 A Beaglebone Black with 4GB+ of storage (8GB+ Recommended).
 
 ###Setup rfcserver (Linux PC)
