@@ -38,7 +38,7 @@ Install the lastest opencv package (3.0+):
 cd ~
 git clone https://github.com/Itseez/opencv.git
 cd opencv && mkdir release && cd release
-cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local ..
+cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D BUILD_NEW_PYTHON_SUPPORT=ON -D BUILD_EXAMPLES=ON ..
 make
 sudo make install
 ```
@@ -104,7 +104,7 @@ Build and Install OpenCV (This takes a few hours)
 ```
 git clone https://github.com/Itseez/opencv.git
 cd opencv && mkdir build && cd build
-cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_CUDA=OFF -D WITH_OPENCL=OFF -D BUILD_opencv_apps=OFF -D BUILD_DOCS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_TESTS=OFF -D ENABLE_NEON=on ..
+cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_CUDA=OFF -D WITH_OPENCL=OFF -D BUILD_opencv_apps=OFF -D BUILD_DOCS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_TESTS=OFF -D ENABLE_NEON=on -D BUILD_NEW_PYTHON_SUPPORT=ON ..
 make
 sudo make install
 sudo ldconfig
