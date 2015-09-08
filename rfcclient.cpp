@@ -80,6 +80,11 @@ int main (int argc, char* argv[])
         bzero(s, 301);
         cin.getline(s, 300);
         
+        string cmdstr (s);
+        if (cmdstr == "exit"){
+            break;
+        }
         write(listenFd, s, strlen(s));
     }
+    cout << "Exiting...\n";
 }
