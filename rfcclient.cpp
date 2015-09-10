@@ -77,12 +77,16 @@ int main (int argc, char* argv[])
         cout << "Enter stuff: ";
         bzero(s, 301);
         cin.getline(s, 300);
-        write(listenFd, s, strlen(s));
+        
+        //write(listenFd, s, strlen(s));
+        send(listenFd, s, strlen(s), 0);
         
         string cmdstr (s);
         if (cmdstr == "exit"){
             break;
         }
+        
+        usleep(1);
     }
     cout << "Exiting..." << endl;
 }
