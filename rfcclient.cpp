@@ -85,8 +85,7 @@ int main (int argc, char* argv[])
         if (cmdstr == "exit"){
             break;
         }
-        
-        usleep(1);
     }
-    cout << "Exiting..." << endl;
+    close(listenFd);
+    cout << "Exiting." << endl;
 }

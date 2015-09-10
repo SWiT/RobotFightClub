@@ -12,8 +12,7 @@
 #include <string>
 #include <pthread.h>
 
-#include <signal.h>
-#include <fcntl.h>
+//#include <fcntl.h>
 
 using namespace std;
 
@@ -23,25 +22,15 @@ void *clientThread(void *);
 
 static int conn;
 
-bool exitsignal = false;
-
-void signalhandler(int num) {
-    switch (num) {
-        case SIGTERM:
-        case SIGINT:
-            exitsignal = true;
-            break;
-    }
-}
+int numThreads = 0;
 
 int main(int argc, char* argv[])
 {
     int portNum, sockListen;
     socklen_t socklen;
-    bool loop = false;
     struct sockaddr_in svrAdd, clntAdd;
     
-    pthread_t threadA[RFC_MAX_CLIENTS];
+    pthread_t threadid[RFC_MAX_CLIENTS];
     
     if (argc < 2)
     {
@@ -81,11 +70,6 @@ int main(int argc, char* argv[])
     
     listen(sockListen, RFC_MAX_CLIENTS);
     cout << "RFC Server listening on port " << portNum << endl;
-    
-    int numThreads = 0;
-
-    signal (SIGINT, signalhandler);
-    signal (SIGTERM, signalhandler);
     cout << numThreads << " Threads" << endl;
     for(;;)
     {
@@ -95,19 +79,13 @@ int main(int argc, char* argv[])
         if (conn >= 0)
         {
             cout << "Connection successful" << endl;
-            pthread_create(&threadA[numThreads], NULL, clientThread, NULL); 
+            pthread_create(&threadid[numThreads], NULL, clientThread, NULL); 
             numThreads++;
             cout << numThreads << " Threads" << endl;
         }
-        
-        if(exitsignal == true) {
-            break;
-        }
-        
-        //usleep(1);
     }
     
-    cout << "\nExiting..." << endl;
+    cout << "\nRFC Server Exiting." << endl;
     return 1;
 }
 
@@ -120,7 +98,6 @@ void *clientThread (void *param)
     {    
         bzero(buff, 301);
         
-        //read(conn, buff, 300);
         recv(conn, buff, 300, 0);
         
         string cmdstr (buff);
@@ -131,11 +108,9 @@ void *clientThread (void *param)
         if(cmdstr == "exit")
             break;
             
-        //usleep(1);
     }
-    cout << "Closing thread..." << endl;
+    cout << "Closing thread "  << pthread_self() << endl;
     close(conn);
-    
 }
 
 
