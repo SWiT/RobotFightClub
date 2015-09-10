@@ -73,18 +73,16 @@ int main (int argc, char* argv[])
     //send stuff to server
     for(;;)
     {
-        char s[300];
-        //cin.clear();
-        //cin.ignore(256, '\n');
+        char s[301];
         cout << "Enter stuff: ";
         bzero(s, 301);
         cin.getline(s, 300);
+        write(listenFd, s, strlen(s));
         
         string cmdstr (s);
         if (cmdstr == "exit"){
             break;
         }
-        write(listenFd, s, strlen(s));
     }
-    cout << "Exiting...\n";
+    cout << "Exiting..." << endl;
 }
