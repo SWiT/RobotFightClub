@@ -85,13 +85,16 @@ void *clientThread (void *param)
     char recvbuff[BUFFERSIZE];
     bzero(recvbuff, BUFFERSIZE);
     
+    char sendbuff[BUFFERSIZE];
+    bzero(sendbuff, BUFFERSIZE);
+    
     int bytessent = 0;
     int bytesrecv = 0;
     
     for(;;)
     {    
-        char s[] = "{for the client};";
-        bytessent = send(conn, s, strlen(s), 0);
+        strcpy(sendbuff, "{for the client};");
+        bytessent = send(conn, sendbuff, strlen(sendbuff), 0);
         if (bytessent > 0)
         {
             cout << "Sent: " << bytessent << endl;

@@ -59,14 +59,17 @@ int main (int argc, char* argv[])
     char recvbuff[BUFFERSIZE];
     bzero(recvbuff, BUFFERSIZE);
     
+    char sendbuff[BUFFERSIZE];
+    bzero(sendbuff, BUFFERSIZE);
+    
     int bytessent = 0;
     int bytesrecv = 0;
     
     // Main loop.
     for(;;)
     {
-        char s[] = "{for the server};";
-        bytessent = send(conn, s, strlen(s), 0);
+        strcpy(sendbuff, "{for the server};");
+        bytessent = send(conn, sendbuff, strlen(sendbuff), 0);
         if (bytessent > 0)
         {
             cout << "Sent: " << bytessent << endl;
