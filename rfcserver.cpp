@@ -1,18 +1,10 @@
 #include <string.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <netdb.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <iostream>
-#include <fstream>
-#include <strings.h>
 #include <stdlib.h>
-#include <string>
 #include <pthread.h>
-
-//#include <fcntl.h>
 
 using namespace std;
 
@@ -111,11 +103,7 @@ void *clientThread (void *param)
         {
             cout << "Recv: " << bytesrecv << endl;
             recvbuff[bytesrecv] = '\0';
-            string recvstr (recvbuff);
-            if (recvstr != "")
-            {
-                cout << recvstr << " ... " << endl;
-            }
+            cout << recvbuff << " ... " << endl;
         }
         
     }

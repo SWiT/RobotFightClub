@@ -1,20 +1,10 @@
 #include <string.h>
-#include <cstring>
 #include <unistd.h>
-#include <stdio.h>
 #include <netdb.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <iostream>
-#include <fstream>
-#include <sstream>
-#include <iomanip>
-#include <strings.h>
 #include <stdlib.h>
-#include <string>
-#include <time.h>
-#include <vector>
+
 using namespace std;
 
 #define BUFFERSIZE 256
@@ -88,18 +78,8 @@ int main (int argc, char* argv[])
         {
             cout << "Recv: " << bytesrecv << endl;
             recvbuff[bytesrecv] = '\0';
-            string recvstr (recvbuff);
-            if (recvstr != "")
-            {
-                cout << recvstr << " ... " << endl;
-            }
+            cout << recvbuff << " ... " << endl;
         }
-        
-        
-        
-        
-        
-        
     }
     close(conn);
     cout << "Exiting." << endl;
