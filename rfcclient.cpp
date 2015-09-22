@@ -17,6 +17,8 @@
 #include <vector>
 using namespace std;
 
+#define BUFFERSIZE 256
+
 int main (int argc, char* argv[])
 {
     int conn, portNo;
@@ -64,31 +66,39 @@ int main (int argc, char* argv[])
         return 0;
     }
     
-    //char recvbuff[301];
-    //bzero(recvbuff, 301);
+    char recvbuff[BUFFERSIZE];
+    bzero(recvbuff, BUFFERSIZE);
+    
+    int bytessent = 0;
+    int bytesrecv = 0;
     
     // Main loop.
     for(;;)
     {
-        /*bzero(recvbuff, 301);
-        recv(conn, recvbuff, 300, 0);
-        string recvstr (recvbuff);
-        if (recvstr != ""){
-            cout << recvstr << endl;
+        char s[] = "{for the server};";
+        bytessent = send(conn, s, strlen(s), 0);
+        if (bytessent > 0)
+        {
+            cout << "Sent: " << bytessent << endl;
         }
-        */
-        char s[301];
-        bzero(s, 301);
-        cout << "Enter stuff: ";
-        cin.getline(s, 300);
         
-        //char s[] = "hello?\0";
-        send(conn, s, strlen(s), 0);
-        
-        string cmdstr (s);
-        if (cmdstr == "disconnect"){
-            break;
+        bzero(recvbuff, BUFFERSIZE);
+        bytesrecv = recv(conn, recvbuff, BUFFERSIZE-1, 0);
+        if (bytesrecv > 0)
+        {
+            cout << "Recv: " << bytesrecv << endl;
+            recvbuff[bytesrecv] = '\0';
+            string recvstr (recvbuff);
+            if (recvstr != "")
+            {
+                cout << recvstr << " ... " << endl;
+            }
         }
+        
+        
+        
+        
+        
         
     }
     close(conn);
