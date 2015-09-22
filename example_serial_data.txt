@@ -28,3 +28,29 @@ $M\n
 
 //Send Message
 $M#:message\n
+
+
+
+
+{[type, data1, data2]}
+
+// RFC Client to Server
+Messages: needs calibrating, outgoing bot, current settings
+Data array of found symbol numbers, position, heading, and alive/dead status
+    m "calibrate"
+    m "name:BBB0\nvideo:/dev/video0\nresolution:1280x720\nfocus:1"
+    d [[symbolnumber, x, y, heading, alive],...] "encodedframe"
+    w SYMBOL EDGE
+    disconnect
+
+// RFC Server to Client
+Messages: incoming bot, current settings?, set setting, shutdown
+    get SETTING VALUE
+    get_all
+    set SETTING VALUE
+    shutdown
+    watch SYMBOL EDGE
+
+
+
+

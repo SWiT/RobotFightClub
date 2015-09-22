@@ -19,7 +19,7 @@ using namespace std;
 
 int main (int argc, char* argv[])
 {
-    int listenFd, portNo;
+    int conn, portNo;
     bool loop = false;
     struct sockaddr_in svrAdd;
     struct hostent *server;
@@ -31,24 +31,21 @@ int main (int argc, char* argv[])
     }
     
     portNo = atoi(argv[2]);
-    
     if((portNo > 65535) || (portNo < 2000))
     {
         cerr<<"Please enter port number between 2000 - 65535"<<endl;
         return 0;
     }       
     
-    //create client skt
-    listenFd = socket(AF_INET, SOCK_STREAM, 0);
-    
-    if(listenFd < 0)
+    // Create socket connection.
+    conn = socket(AF_INET, SOCK_STREAM, 0);
+    if(conn < 0)
     {
         cerr << "Cannot open socket" << endl;
         return 0;
     }
     
     server = gethostbyname(argv[1]);
-    
     if(server == NULL)
     {
         cerr << "Host does not exist" << endl;
@@ -57,35 +54,43 @@ int main (int argc, char* argv[])
     
     bzero((char *) &svrAdd, sizeof(svrAdd));
     svrAdd.sin_family = AF_INET;
-    
     bcopy((char *) server -> h_addr, (char *) &svrAdd.sin_addr.s_addr, server -> h_length);
-    
     svrAdd.sin_port = htons(portNo);
     
-    int checker = connect(listenFd,(struct sockaddr *) &svrAdd, sizeof(svrAdd));
-    
+    int checker = connect(conn,(struct sockaddr *) &svrAdd, sizeof(svrAdd));
     if (checker < 0)
     {
         cerr << "Cannot connect!" << endl;
         return 0;
     }
     
-    //send stuff to server
+    //char recvbuff[301];
+    //bzero(recvbuff, 301);
+    
+    // Main loop.
     for(;;)
     {
+        /*bzero(recvbuff, 301);
+        recv(conn, recvbuff, 300, 0);
+        string recvstr (recvbuff);
+        if (recvstr != ""){
+            cout << recvstr << endl;
+        }
+        */
         char s[301];
-        cout << "Enter stuff: ";
         bzero(s, 301);
+        cout << "Enter stuff: ";
         cin.getline(s, 300);
         
-        //write(listenFd, s, strlen(s));
-        send(listenFd, s, strlen(s), 0);
+        //char s[] = "hello?\0";
+        send(conn, s, strlen(s), 0);
         
         string cmdstr (s);
-        if (cmdstr == "exit"){
+        if (cmdstr == "disconnect"){
             break;
         }
+        
     }
-    close(listenFd);
+    close(conn);
     cout << "Exiting." << endl;
 }

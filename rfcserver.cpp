@@ -22,8 +22,6 @@ void *clientThread(void *);
 
 static int conn;
 
-int numThreads = 0;
-
 int main(int argc, char* argv[])
 {
     int portNum, sockListen;
@@ -34,7 +32,7 @@ int main(int argc, char* argv[])
     
     if (argc < 2)
     {
-        cerr << "Syntam : ./server <port>" << endl;
+        cerr << "Syntax : ./server <port>" << endl;
         return 0;
     }
     
@@ -70,43 +68,45 @@ int main(int argc, char* argv[])
     
     listen(sockListen, RFC_MAX_CLIENTS);
     cout << "RFC Server listening on port " << portNum << endl;
-    cout << numThreads << " Threads" << endl;
+    
+    int threadIndex = 0;
+    
     for(;;)
     {
         socklen = sizeof(clntAdd);
-
         conn = accept(sockListen, (struct sockaddr *)&clntAdd, &socklen);
         if (conn >= 0)
         {
             cout << "Connection successful" << endl;
-            pthread_create(&threadid[numThreads], NULL, clientThread, NULL); 
-            numThreads++;
-            cout << numThreads << " Threads" << endl;
+            pthread_create(&threadid[threadIndex], NULL, clientThread, NULL); 
         }
     }
-    
-    cout << "\nRFC Server Exiting." << endl;
     return 1;
 }
 
 void *clientThread (void *param)
 {
-    cout << "Thread Number: " << pthread_self() << endl;
-    char buff[301];
-    bzero(buff, 301);
+    cout << "Starting thread " << pthread_self() << endl;
+    char recvbuff[301];
+    bzero(recvbuff, 301);
+    
+    string sendstr = "get_all;";
+    
     for(;;)
     {    
-        bzero(buff, 301);
-        
-        recv(conn, buff, 300, 0);
-        
-        string cmdstr (buff);
-        
-        if (cmdstr != ""){
-            cout << cmdstr << endl;
+        bzero(recvbuff, 301);
+        recv(conn, recvbuff, 300, 0);
+        string recvstr (recvbuff);
+        if (recvstr != ""){
+            cout << recvstr << endl;
         }
-        if(cmdstr == "exit")
+        
+        if(recvstr == "disconnect")
             break;
+        
+        //char s[] = "goodbye!\0";
+        //send(conn, s, strlen(s), 0);
+        //sendstr = "";
             
     }
     cout << "Closing thread "  << pthread_self() << endl;
