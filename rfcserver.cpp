@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <pthread.h>
+#include <stack>
 
 using namespace std;
 
@@ -13,7 +14,7 @@ using namespace std;
 
 void *clientThread(void *);
 
-static int conn;
+static int conn[RFC_MAX_CLIENTS];
 
 int main(int argc, char* argv[])
 {
@@ -68,11 +69,19 @@ int main(int argc, char* argv[])
     for(;;)
     {
         socklen = sizeof(clntAdd);
-        conn = accept(sockListen, (struct sockaddr *)&clntAdd, &socklen);
-        if (conn >= 0)
+        conn[threadIndex] = accept(sockListen, (struct sockaddr *)&clntAdd, &socklen);
+        if (conn[threadIndex] >= 0)
         {
             cout << "Connection successful" << endl;
-            pthread_create(&threadid[threadIndex], NULL, clientThread, NULL); 
+            
+            int arg = threadIndex;
+            
+            
+            pthread_create(&threadid[threadIndex], NULL, clientThread, (void *) arg); 
+            threadIndex++;
+            if (threadIndex >= RFC_MAX_CLIENTS) {
+                threadIndex = 0;
+            }
         }
     }
     return 1;
@@ -81,7 +90,10 @@ int main(int argc, char* argv[])
 // Client Thread.
 void *clientThread (void *param)
 {
-    cout << "Starting thread " << pthread_self() << endl;
+    int idx = *((int *) param);
+    //idx = (int *) param;
+
+    cout << "Starting thread " << pthread_self() << " : " << idx << endl;
     char recvbuff[BUFFERSIZE];
     bzero(recvbuff, BUFFERSIZE);
     
@@ -94,14 +106,14 @@ void *clientThread (void *param)
     for(;;)
     {    
         strcpy(sendbuff, "{for the client};");
-        bytessent = send(conn, sendbuff, strlen(sendbuff), 0);
+        //bytessent = send(conn[idx], sendbuff, strlen(sendbuff), 0);
         if (bytessent > 0)
         {
             cout << "Sent: " << bytessent << endl;
         }
     
         bzero(recvbuff, BUFFERSIZE);
-        bytesrecv = recv(conn, recvbuff, BUFFERSIZE-1, 0);
+        //bytesrecv = recv(conn[idx], recvbuff, BUFFERSIZE-1, 0);
         if(bytesrecv > 0)
         {
             cout << "Recv: " << bytesrecv << endl;
@@ -111,7 +123,7 @@ void *clientThread (void *param)
         
     }
     cout << "Closing thread "  << pthread_self() << endl;
-    close(conn);
+    //close(conn[idx]);
 }
 
 
